@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, User, Stethoscope } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, Stethoscope, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { Label } from "@/components/ui/label";
 import { useLocation } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface Appointment {
   id: number;
@@ -35,6 +37,14 @@ export default function Appointments() {
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedDentistId, setSelectedDentistId] = useState<string>("");
+  const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<Appointment | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedAppointmentForReschedule, setSelectedAppointmentForReschedule] = useState<Appointment | null>(null);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [newAppointmentDate, setNewAppointmentDate] = useState<Date | undefined>();
+  const [newAppointmentTime, setNewAppointmentTime] = useState<string | null>(null);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
 
@@ -49,6 +59,35 @@ export default function Appointments() {
       setSelectedDentistId(dentistIdFromUrl);
     }
   }, [location.search]);
+
+  useEffect(() => {
+    const fetchAvailableTimes = async () => {
+      if (isRescheduleDialogOpen && selectedAppointmentForReschedule && newAppointmentDate) {
+        setIsLoadingTimes(true);
+        setAvailableTimes([]);
+        setNewAppointmentTime(null);
+        try {
+          const date = newAppointmentDate.toISOString().split('T')[0];
+          const response = await fetch(`http://localhost:3000/api/dentists/${selectedAppointmentForReschedule.dentist_id}/available-slots?date=${date}`);
+          if (response.ok) {
+            const data: { start_time: string }[] = await response.json();
+            const formattedTimes = data.map(slot => {
+              const date = new Date(slot.start_time);
+              return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            });
+            setAvailableTimes(formattedTimes);
+          } else {
+            toast({ title: "Erro", description: "Falha ao buscar horários disponíveis", variant: "destructive" });
+          }
+        } catch (error) {
+          toast({ title: "Erro", description: "Falha ao buscar horários disponíveis", variant: "destructive" });
+        }
+        setIsLoadingTimes(false);
+      }
+    };
+
+    fetchAvailableTimes();
+  }, [isRescheduleDialogOpen, selectedAppointmentForReschedule, newAppointmentDate, toast]);
 
   const fetchAppointments = async () => {
     try {
@@ -106,6 +145,43 @@ export default function Appointments() {
         return "bg-destructive/10 text-destructive hover:bg-destructive/20";
       default:
         return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handleReschedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAppointmentForReschedule || !newAppointmentDate || !newAppointmentTime) {
+      toast({ title: "Erro", description: "Por favor, selecione uma nova data e hora.", variant: "destructive" });
+      return;
+    }
+
+    const [hours, minutes] = newAppointmentTime.split(':');
+    const newDate = new Date(newAppointmentDate);
+    newDate.setHours(parseInt(hours, 10));
+    newDate.setMinutes(parseInt(minutes, 10));
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/appointments/${selectedAppointmentForReschedule.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointment_date: newDate.toISOString(),
+          status: 'pending',
+        }),
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Agendamento reagendado com sucesso." });
+        setIsRescheduleDialogOpen(false);
+        fetchAppointments();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao reagendar.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Ocorreu um erro de rede.", variant: "destructive" });
     }
   };
 
@@ -228,18 +304,119 @@ export default function Appointments() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setSelectedAppointmentForReschedule(appointment);
+                      const appointmentDate = new Date(appointment.appointment_date);
+                      setNewAppointmentDate(appointmentDate);
+                      setIsRescheduleDialogOpen(true);
+                    }}>
                       Reagendar
                     </Button>
-                    <Button variant="default" size="sm">
-                      Detalhes
-                    </Button>
+                    <Dialog open={isDetailsDialogOpen && selectedAppointmentForDetails?.id === appointment.id} onOpenChange={setIsDetailsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="default" size="sm" onClick={() => setSelectedAppointmentForDetails(appointment)}>
+                          Detalhes
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Detalhes do Agendamento</DialogTitle>
+                          <DialogDescription>
+                            Informações completas sobre a consulta.
+                          </DialogDescription>
+                        </DialogHeader>
+                        {selectedAppointmentForDetails && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <h4 className="font-semibold">Paciente</h4>
+                                <p>{getPatientName(selectedAppointmentForDetails.patient_id)}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">Dentista</h4>
+                                <p>{getDentistName(selectedAppointmentForDetails.dentist_id)}</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <h4 className="font-semibold">Data</h4>
+                                <p>{new Date(selectedAppointmentForDetails.appointment_date).toLocaleDateString("pt-BR")}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">Hora</h4>
+                                <p>{new Date(selectedAppointmentForDetails.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                               <div>
+                                <h4 className="font-semibold">Tipo</h4>
+                                <p>{selectedAppointmentForDetails.type}</p>
+                              </div>
+                               <div>
+                                <h4 className="font-semibold">Status</h4>
+                                <Badge className={getStatusColor(selectedAppointmentForDetails.status)}>
+                                  {selectedAppointmentForDetails.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">Notas</h4>
+                              <p className="text-muted-foreground">{selectedAppointmentForDetails.notes || "Nenhuma nota."}</p>
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+        <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reagendar Consulta</DialogTitle>
+              <DialogDescription>
+                Selecione a nova data e hora para o agendamento.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedAppointmentForReschedule && (
+                <form onSubmit={handleReschedule} className="space-y-4">
+                    <div className="flex justify-center">
+                        <DayPicker
+                            mode="single"
+                            selected={newAppointmentDate}
+                            onSelect={setNewAppointmentDate}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Novos Horários Disponíveis</Label>
+                        {isLoadingTimes ? (
+                          <p>Carregando horários...</p>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-2">
+                            {availableTimes.length > 0 ? availableTimes.map(time => (
+                                <Button
+                                    key={time}
+                                    type="button"
+                                    variant={newAppointmentTime === time ? "default" : "outline"}
+                                    onClick={() => setNewAppointmentTime(time)}
+                                >
+                                    {time}
+                                </Button>
+                            )) : <p>Nenhum horário disponível para esta data.</p>}
+                          </div>
+                        )}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button type="button" variant="ghost" onClick={() => setIsRescheduleDialogOpen(false)}>Cancelar</Button>
+                        <Button type="submit">Confirmar Reagendamento</Button>
+                    </div>
+                </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

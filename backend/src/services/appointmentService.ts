@@ -32,6 +32,17 @@ export const createAppointment = async (appointment: any) => {
 
 export const updateAppointment = async (id: string, appointment: any) => {
   const { patient_id, dentist_id, appointment_date, type, notes, status } = appointment;
+
+  // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista, excluindo o agendamento atual
+  const conflictResult = await pool.query(
+    'SELECT id FROM appointments WHERE dentist_id = $1 AND appointment_date = $2 AND id != $3',
+    [dentist_id, appointment_date, id]
+  );
+
+  if (conflictResult.rows.length > 0) {
+    throw new Error('Conflito de agendamento: O horário selecionado não está disponível.');
+  }
+
   const result = await pool.query(
     'UPDATE appointments SET patient_id = $1, dentist_id = $2, appointment_date = $3, type = $4, notes = $5, status = $6 WHERE id = $7 RETURNING *',
     [patient_id, dentist_id, appointment_date, type, notes, status, id]
