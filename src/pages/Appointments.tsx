@@ -171,7 +171,7 @@ export default function Appointments() {
                           <p className="font-medium">{getPatientName(appointment.patient_id)}</p>
                           <p className="text-sm text-muted-foreground">{appointment.type} com {getDentistName(appointment.dentist_id)}</p>
                         </div>
-                        <p className="text-sm font-medium">{new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-sm font-medium">{`${new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}</p>
                       </div>
                     ))
                   ) : (
@@ -214,7 +214,7 @@ export default function Appointments() {
                       <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          {new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                          {`${new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}
                         </div>
                         <div className="flex items-center gap-1">
                           <Stethoscope className="h-4 w-4" />

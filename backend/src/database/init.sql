@@ -32,7 +32,8 @@ CREATE TABLE appointments (
     id SERIAL PRIMARY KEY,
     patient_id INT REFERENCES patients(id),
     dentist_id INT REFERENCES dentists(id),
-    appointment_date TIMESTAMP NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
     type VARCHAR(100),
     notes TEXT,
     status VARCHAR(50) NOT NULL DEFAULT 'pending'
@@ -78,6 +79,6 @@ INSERT INTO dentist_schedules (dentist_id, day_of_week, start_time, end_time, sl
 (2, 'Tuesday', '10:00:00', '18:00:00', 60),
 (2, 'Thursday', '10:00:00', '18:00:00', 60);
 
-INSERT INTO appointments (patient_id, dentist_id, appointment_date, type, notes, status) VALUES
-(1, 1, '2024-10-02 09:00:00', 'Checkup', NULL, 'confirmed'),
-(2, 2, '2024-10-02 10:30:00', 'Cleaning', NULL, 'confirmed');
+INSERT INTO appointments (patient_id, dentist_id, start_time, end_time, type, notes, status) VALUES
+(1, 1, '2024-10-02 09:00:00', '2024-10-02 09:30:00', 'Checkup', NULL, 'confirmed'),
+(2, 2, '2024-10-02 10:30:00', '2024-10-02 11:30:00', 'Cleaning', NULL, 'confirmed');

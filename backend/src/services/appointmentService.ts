@@ -12,6 +12,17 @@ export const getAppointmentById = async (id: string) => {
 
 export const createAppointment = async (appointment: any) => {
   const { patient_id, dentist_id, appointment_date, type, notes, status } = appointment;
+
+  // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista
+  const conflictResult = await pool.query(
+    'SELECT id FROM appointments WHERE dentist_id = $1 AND appointment_date = $2',
+    [dentist_id, appointment_date]
+  );
+
+  if (conflictResult.rows.length > 0) {
+    throw new Error('Conflito de agendamento: O horário selecionado não está disponível.');
+  }
+
   const result = await pool.query(
     'INSERT INTO appointments (patient_id, dentist_id, appointment_date, type, notes, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
     [patient_id, dentist_id, appointment_date, type, notes, status]
