@@ -119,6 +119,8 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
     const availableSlots = await dentistService.getAvailableSlots(id, date);
     res.json(availableSlots);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching available slots', error });
+    console.error("!!!!!!!!!! ERRO AO BUSCAR SLOTS !!!!!!!!!!");
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching available slots', error: (error as Error).message });
   }
 };

@@ -23,6 +23,11 @@ interface Dentist {
   specialty: string;
 }
 
+interface AvailabilitySlot {
+  start_time: string;
+  end_time: string;
+}
+
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
@@ -31,12 +36,45 @@ export default function Patients() {
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [isBookAppointmentOpen, setIsBookAppointmentOpen] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedDentistId, setSelectedDentistId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchPatients();
     fetchDentists();
   }, []);
+
+  useEffect(() => {
+    const fetchAvailableTimes = async () => {
+      if (selectedDentistId && selectedDate) {
+        setIsLoadingTimes(true);
+        setAvailableTimes([]);
+        setSelectedTime(null);
+        try {
+          const response = await fetch(`http://localhost:3000/api/dentists/${selectedDentistId}/available-slots?date=${selectedDate}`);
+          if (response.ok) {
+            const data: AvailabilitySlot[] = await response.json();
+            const formattedTimes = data.map(slot => {
+              const date = new Date(slot.start_time);
+              return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            });
+            setAvailableTimes(formattedTimes);
+          } else {
+            toast({ title: "Erro", description: "Falha ao buscar horários disponíveis", variant: "destructive" });
+          }
+        } catch (error) {
+          toast({ title: "Erro", description: "Falha ao buscar horários disponíveis", variant: "destructive" });
+        }
+        setIsLoadingTimes(false);
+      }
+    };
+
+    fetchAvailableTimes();
+  }, [selectedDentistId, selectedDate, toast]);
 
   const fetchPatients = async () => {
     try {
@@ -95,10 +133,22 @@ export default function Patients() {
   const handleBookAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const date = formData.get('appointment_date');
+
+    if (!selectedTime) {
+      toast({ title: "Erro", description: "Por favor, selecione um horário.", variant: "destructive" });
+      return;
+    }
+
+    const appointmentDateTime = `${date}T${selectedTime}:00`;
+
     const appointmentData = {
-      ...Object.fromEntries(formData.entries()),
+      dentist_id: formData.get('dentist_id'),
+      type: formData.get('type'),
+      notes: formData.get('notes'),
+      appointment_date: appointmentDateTime,
       patient_id: selectedPatient?.id,
-      status: 'pending', // Default status
+      status: 'pending',
     };
 
     try {
@@ -118,6 +168,14 @@ export default function Patients() {
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao agendar consulta", variant: "destructive" });
     }
+  };
+
+  const resetBookingForm = () => {
+    setSelectedPatient(null);
+    setSelectedTime(null);
+    setSelectedDentistId(null);
+    setSelectedDate(null);
+    setAvailableTimes([]);
   };
 
   return (
@@ -287,12 +345,12 @@ export default function Patients() {
                   
                   <Dialog open={isBookAppointmentOpen && selectedPatient?.id === patient.id} onOpenChange={(open) => {
                     setIsBookAppointmentOpen(open);
-                    if (!open) setSelectedPatient(null);
+                    if (!open) resetBookingForm();
                   }}>
                     <DialogTrigger asChild>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
+                      <Button
+                        variant="default"
+                        size="sm"
                         className="flex-1"
                         onClick={() => setSelectedPatient(patient)}
                       >
@@ -306,18 +364,52 @@ export default function Patients() {
                       </DialogHeader>
                       <form onSubmit={handleBookAppointment} className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="appointment_date">Data e Hora da Consulta</Label>
-                          <Input id="appointment_date" name="appointment_date" type="datetime-local" required />
-                        </div>
-                        <div className="space-y-2">
                           <Label htmlFor="dentist_id">Selecionar Dentista</Label>
-                          <select id="dentist_id" name="dentist_id" required className="w-full rounded-md border border-input bg-background px-3 py-2">
+                          <select 
+                            id="dentist_id" 
+                            name="dentist_id" 
+                            required 
+                            className="w-full rounded-md border border-input bg-background px-3 py-2"
+                            onChange={(e) => setSelectedDentistId(e.target.value)}
+                          >
                             <option value="">Escolha um dentista</option>
                             {dentists.map(dentist => (
                               <option key={dentist.id} value={dentist.id}>{dentist.name}</option>
                             ))}
                           </select>
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="appointment_date">Data da Consulta</Label>
+                          <Input 
+                            id="appointment_date" 
+                            name="appointment_date" 
+                            type="date" 
+                            required 
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Horários Disponíveis</Label>
+                            {isLoadingTimes ? (
+                              <p>Carregando horários...</p>
+                            ) : (
+                              <div className="grid grid-cols-4 gap-2">
+                                {availableTimes.length > 0 ? availableTimes.map(time => (
+                                    <Button 
+                                        key={time}
+                                        type="button" 
+                                        variant={selectedTime === time ? "default" : "outline"}
+                                        onClick={() => setSelectedTime(time)}
+                                    >
+                                        {time}
+                                    </Button>
+                                )) : <p>Nenhum horário disponível para esta data.</p>}
+                              </div>
+                            )}
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="type">Tipo de Consulta</Label>
                           <select id="type" name="type" required className="w-full rounded-md border border-input bg-background px-3 py-2">
@@ -334,7 +426,9 @@ export default function Patients() {
                           <Textarea id="notes" name="notes" placeholder="Requisitos especiais ou observações..." />
                         </div>
                         <div className="flex justify-end gap-2">
-                          <Button type="button" variant="outline" onClick={() => setIsBookAppointmentOpen(false)}>
+                          <Button type="button" variant="outline" onClick={() => {
+                            setIsBookAppointmentOpen(false);
+                          }}>
                             Cancelar
                           </Button>
                           <Button type="submit">
