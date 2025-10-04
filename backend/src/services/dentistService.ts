@@ -87,10 +87,10 @@ export const getAvailableSlots = async (dentistId: string, date: string) => {
   }
 
   const appointmentsResult = await pool.query(
-    'SELECT appointment_date FROM appointments WHERE dentist_id = $1 AND appointment_date::date = $2',
+    'SELECT start_time FROM appointments WHERE dentist_id = $1 AND start_time::date = $2',
     [dentistId, date]
   );
-  const bookedStartTimes = appointmentsResult.rows.map(row => new Date(row.appointment_date).getTime());
+  const bookedStartTimes = appointmentsResult.rows.map(row => new Date(row.start_time).getTime());
 
   const availableSlots: { start_time: Date, end_time: Date }[] = [];
 

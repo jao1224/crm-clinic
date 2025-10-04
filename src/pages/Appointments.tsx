@@ -10,12 +10,15 @@ import { Label } from "@/components/ui/label";
 import { useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Appointment {
   id: number;
   patient_id: number;
   dentist_id: number;
-  appointment_date: string;
+  start_time: string;
+  end_time: string;
   type: string;
   notes: string;
   status: string;
@@ -156,9 +159,29 @@ export default function Appointments() {
     }
 
     const [hours, minutes] = newAppointmentTime.split(':');
-    const newDate = new Date(newAppointmentDate);
-    newDate.setHours(parseInt(hours, 10));
-    newDate.setMinutes(parseInt(minutes, 10));
+    const d = new Date(newAppointmentDate);
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+
+    const startTimeString = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+
+    const duration = new Date(selectedAppointmentForReschedule.end_time).getTime() - new Date(selectedAppointmentForReschedule.start_time).getTime();
+    
+    const tempStartDate = new Date(newAppointmentDate);
+    tempStartDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    
+    const newEndTime = new Date(tempStartDate.getTime() + duration);
+
+    const endYear = newEndTime.getFullYear();
+    const endMonth = String(newEndTime.getMonth() + 1).padStart(2, '0');
+    const endDay = String(newEndTime.getDate()).padStart(2, '0');
+    const endHours = String(newEndTime.getHours()).padStart(2, '0');
+    const endMinutes = String(newEndTime.getMinutes()).padStart(2, '0');
+    const endSeconds = String(newEndTime.getSeconds()).padStart(2, '0');
+
+    const endTimeString = `${endYear}-${endMonth}-${endDay} ${endHours}:${endMinutes}:${endSeconds}`;
 
     try {
       const response = await fetch(`http://localhost:3000/api/appointments/${selectedAppointmentForReschedule.id}`, {
@@ -167,7 +190,9 @@ export default function Appointments() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          appointment_date: newDate.toISOString(),
+          ...selectedAppointmentForReschedule,
+          start_time: startTimeString,
+          end_time: endTimeString,
           status: 'pending',
         }),
       });
@@ -186,11 +211,11 @@ export default function Appointments() {
   };
 
   const filteredAppointments = appointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.appointment_date);
+    const appointmentDate = new Date(appointment.start_time);
     const isSameDay = selectedDate ? appointmentDate.toDateString() === selectedDate.toDateString() : true;
     const isSelectedDentist = selectedDentistId ? appointment.dentist_id === parseInt(selectedDentistId) : true;
     return isSameDay && isSelectedDentist;
-  }).sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+  }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
   return (
     <div className="min-h-screen bg-background">
@@ -247,7 +272,7 @@ export default function Appointments() {
                           <p className="font-medium">{getPatientName(appointment.patient_id)}</p>
                           <p className="text-sm text-muted-foreground">{appointment.type} com {getDentistName(appointment.dentist_id)}</p>
                         </div>
-                        <p className="text-sm font-medium">{`${new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}</p>
+                        <p className="text-sm font-medium">{`${new Date(appointment.start_time).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}</p>
                       </div>
                     ))
                   ) : (
@@ -266,110 +291,125 @@ export default function Appointments() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 transition-all hover:bg-muted"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg bg-primary/10">
-                      <span className="text-xs font-medium text-primary">
-                        {new Date(appointment.appointment_date).toLocaleDateString("pt-BR", { month: "short" })}
-                      </span>
-                      <span className="text-2xl font-bold text-primary">
-                        {new Date(appointment.appointment_date).getDate()}
-                      </span>
+              {appointments.map((appointment) => {
+                const appointmentDate = new Date(appointment.start_time);
+
+                if (isNaN(appointmentDate.getTime())) {
+                  // Optional: Log error for debugging
+                  // console.error("Invalid date value for appointment:", appointment);
+                  return (
+                    <div key={appointment.id} className="flex items-center justify-between rounded-lg border border-destructive bg-destructive/10 p-4">
+                      <p className="text-sm font-medium text-destructive">
+                        Erro: A data para este agendamento é inválida.
+                      </p>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{getPatientName(appointment.patient_id)}</h3>
-                        <Badge className={getStatusColor(appointment.status)}>
-                          {appointment.status}
-                        </Badge>
+                  );
+                }
+
+                return (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-4 transition-all hover:bg-muted"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg bg-primary/10">
+                        <span className="text-2xl font-bold text-primary">
+                          {format(appointmentDate, "d")}
+                        </span>
+                        <span className="text-xs font-medium text-primary">
+                          {format(appointmentDate, "MMM", { locale: ptBR })}
+                        </span>
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {`${new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-foreground">{getPatientName(appointment.patient_id)}</h3>
+                          <Badge className={getStatusColor(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Stethoscope className="h-4 w-4" />
-                          {getDentistName(appointment.dentist_id)}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {appointment.type}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setSelectedAppointmentForReschedule(appointment);
-                      const appointmentDate = new Date(appointment.appointment_date);
-                      setNewAppointmentDate(appointmentDate);
-                      setIsRescheduleDialogOpen(true);
-                    }}>
-                      Reagendar
-                    </Button>
-                    <Dialog open={isDetailsDialogOpen && selectedAppointmentForDetails?.id === appointment.id} onOpenChange={setIsDetailsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="default" size="sm" onClick={() => setSelectedAppointmentForDetails(appointment)}>
-                          Detalhes
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Detalhes do Agendamento</DialogTitle>
-                          <DialogDescription>
-                            Informações completas sobre a consulta.
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedAppointmentForDetails && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-semibold">Paciente</h4>
-                                <p>{getPatientName(selectedAppointmentForDetails.patient_id)}</p>
-                              </div>
-                              <div>
-                                <h4 className="font-semibold">Dentista</h4>
-                                <p>{getDentistName(selectedAppointmentForDetails.dentist_id)}</p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-semibold">Data</h4>
-                                <p>{new Date(selectedAppointmentForDetails.appointment_date).toLocaleDateString("pt-BR")}</p>
-                              </div>
-                              <div>
-                                <h4 className="font-semibold">Hora</h4>
-                                <p>{new Date(selectedAppointmentForDetails.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                               <div>
-                                <h4 className="font-semibold">Tipo</h4>
-                                <p>{selectedAppointmentForDetails.type}</p>
-                              </div>
-                               <div>
-                                <h4 className="font-semibold">Status</h4>
-                                <Badge className={getStatusColor(selectedAppointmentForDetails.status)}>
-                                  {selectedAppointmentForDetails.status}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div>
-                              <h4 className="font-semibold">Notas</h4>
-                              <p className="text-muted-foreground">{selectedAppointmentForDetails.notes || "Nenhuma nota."}</p>
-                            </div>
+                        <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {appointmentDate.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                           </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                          <div className="flex items-center gap-1">
+                            <Stethoscope className="h-4 w-4" />
+                            {getDentistName(appointment.dentist_id)}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            {appointment.type}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedAppointmentForReschedule(appointment);
+                        setNewAppointmentDate(appointmentDate);
+                        setIsRescheduleDialogOpen(true);
+                      }}>
+                        Reagendar
+                      </Button>
+                      <Dialog open={isDetailsDialogOpen && selectedAppointmentForDetails?.id === appointment.id} onOpenChange={setIsDetailsDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="default" size="sm" onClick={() => setSelectedAppointmentForDetails(appointment)}>
+                            Detalhes
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Detalhes do Agendamento</DialogTitle>
+                            <DialogDescription>
+                              Informações completas sobre a consulta.
+                            </DialogDescription>
+                          </DialogHeader>
+                          {selectedAppointmentForDetails && (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-semibold">Paciente</h4>
+                                  <p>{getPatientName(selectedAppointmentForDetails.patient_id)}</p>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold">Dentista</h4>
+                                  <p>{getDentistName(selectedAppointmentForDetails.dentist_id)}</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-semibold">Data</h4>
+                                  <p>{new Date(selectedAppointmentForDetails.start_time).toLocaleDateString("pt-BR")}</p>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold">Hora</h4>
+                                  <p>{new Date(selectedAppointmentForDetails.start_time).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div>
+                                  <h4 className="font-semibold">Tipo</h4>
+                                  <p>{selectedAppointmentForDetails.type}</p>
+                                </div>
+                                 <div>
+                                  <h4 className="font-semibold">Status</h4>
+                                  <Badge className={getStatusColor(selectedAppointmentForDetails.status)}>
+                                    {selectedAppointmentForDetails.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">Notas</h4>
+                                <p className="text-muted-foreground">{selectedAppointmentForDetails.notes || "Nenhuma nota."}</p>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

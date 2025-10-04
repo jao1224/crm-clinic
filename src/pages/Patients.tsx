@@ -50,7 +50,7 @@ export default function Patients() {
   const [selectedDentistId, setSelectedDentistId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<AvailabilitySlot[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   
   const { toast } = useToast();
@@ -73,11 +73,7 @@ export default function Patients() {
           const response = await fetch(`http://localhost:3000/api/dentists/${selectedDentistId}/available-slots?date=${format(selectedDate, "yyyy-MM-dd")}`);
           if (response.ok) {
             const data: AvailabilitySlot[] = await response.json();
-            const formattedTimes = data.map(slot => {
-              const date = new Date(slot.start_time);
-              return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            });
-            setAvailableTimes(formattedTimes);
+            setAvailableTimes(data);
           } else {
             toast({ title: "Erro", description: "Falha ao buscar horários disponíveis", variant: "destructive" });
           }
@@ -159,16 +155,19 @@ export default function Patients() {
       return;
     }
 
-    const [hours, minutes] = selectedTime.split(':');
-    const appointmentDateTime = new Date(selectedDate);
-    appointmentDateTime.setHours(parseInt(hours, 10));
-    appointmentDateTime.setMinutes(parseInt(minutes, 10));
+    const selectedSlot = availableTimes.find(slot => new Date(slot.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) === selectedTime);
+
+    if (!selectedSlot) {
+      toast({ title: "Erro", description: "Horário selecionado não é válido.", variant: "destructive" });
+      return;
+    }
     
     const appointmentData = {
       dentist_id: formData.get('dentist_id'),
       type: formData.get('type'),
       notes: formData.get('notes'),
-      appointment_date: appointmentDateTime.toISOString(),
+      start_time: new Date(selectedSlot.start_time).toISOString(),
+      end_time: new Date(selectedSlot.end_time).toISOString(),
       patient_id: selectedPatient?.id,
       status: 'pending',
     };
@@ -486,16 +485,19 @@ export default function Patients() {
                               <p>Carregando horários...</p>
                             ) : (
                               <div className="grid grid-cols-4 gap-2">
-                                {availableTimes.length > 0 ? availableTimes.map(time => (
-                                    <Button 
-                                        key={time}
-                                        type="button" 
-                                        variant={selectedTime === time ? "default" : "outline"}
-                                        onClick={() => setSelectedTime(time)}
-                                    >
-                                        {time}
-                                    </Button>
-                                )) : <p>Nenhum horário disponível para esta data.</p>}
+                                {availableTimes.length > 0 ? availableTimes.map(slot => {
+                                    const time = new Date(slot.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                    return (
+                                        <Button 
+                                            key={time}
+                                            type="button" 
+                                            variant={selectedTime === time ? "default" : "outline"}
+                                            onClick={() => setSelectedTime(time)}
+                                        >
+                                            {time}
+                                        </Button>
+                                    );
+                                }) : <p>Nenhum horário disponível para esta data.</p>}
                               </div>
                             )}
                         </div>

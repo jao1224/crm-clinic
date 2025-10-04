@@ -25,7 +25,8 @@ interface Appointment {
   id: number;
   patient_id: number;
   dentist_id: number;
-  appointment_date: string;
+  start_time: string;
+  end_time: string;
   type: string;
   notes: string;
   status: string;
@@ -136,11 +137,11 @@ export default function Dentists() {
   };
 
   const filteredAppointments = appointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.appointment_date);
+    const appointmentDate = new Date(appointment.start_time);
     const isSameDay = selectedDate ? appointmentDate.toDateString() === selectedDate.toDateString() : true;
     const isSelectedDentist = selectedDentistForSchedule ? appointment.dentist_id === selectedDentistForSchedule.id : true;
     return isSameDay && isSelectedDentist;
-  }).sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+  }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
   return (
     <div className="min-h-screen bg-background">
@@ -253,7 +254,7 @@ export default function Dentists() {
                           <p className="font-medium">{getPatientName(appointment.patient_id)}</p>
                           <p className="text-sm text-muted-foreground">{appointment.type}</p>
                         </div>
-                        <p className="text-sm font-medium">{new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-sm font-medium">{new Date(appointment.start_time).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     ))
                   ) : (

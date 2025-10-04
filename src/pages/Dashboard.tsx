@@ -19,7 +19,8 @@ interface Appointment {
   id: number;
   patient_id: number;
   dentist_id: number;
-  appointment_date: string;
+  start_time: string;
+  end_time: string;
   type: string;
   notes: string;
   status: string;
@@ -116,15 +117,15 @@ export default function Dashboard() {
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         const filteredTodayAppointments = appointmentsData.filter(app => {
-          const appDate = new Date(app.appointment_date);
+          const appDate = new Date(app.start_time);
           return appDate >= today && appDate < tomorrow;
         });
         setTodayAppointments(filteredTodayAppointments.length);
 
         const filteredUpcomingAppointments = appointmentsData.filter(app => {
-          const appDate = new Date(app.appointment_date);
+          const appDate = new Date(app.start_time);
           return appDate >= today;
-        }).sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+        }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
         setUpcomingAppointments(filteredUpcomingAppointments);
       }
 
@@ -307,8 +308,13 @@ export default function Dashboard() {
                     className="flex items-center justify-between rounded-lg border border-border p-4 transition-all hover:bg-muted"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                        <Users className="h-6 w-6 text-primary" />
+                      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <span className="text-sm font-bold">
+                          {format(new Date(appointment.start_time), "d")}
+                        </span>
+                        <span className="text-xs">
+                          {format(new Date(appointment.start_time), "MMM", { locale: ptBR })}
+                        </span>
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{getPatientName(appointment.patient_id)}</p>
@@ -316,7 +322,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-foreground">{new Date(appointment.appointment_date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="font-medium text-foreground">{new Date(appointment.start_time).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
                       <p className="text-sm text-muted-foreground">{getDentistName(appointment.dentist_id)}</p>
                     </div>
                   </div>

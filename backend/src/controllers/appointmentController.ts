@@ -25,6 +25,7 @@ export const getAppointmentById = async (req: Request, res: Response) => {
 
 export const createAppointment = async (req: Request, res: Response) => {
   try {
+    console.log('Creating appointment with body:', req.body);
     const newAppointment = await appointmentService.createAppointment(req.body);
     res.status(201).json(newAppointment);
   } catch (error) {
