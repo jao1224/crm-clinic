@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Calendar, DollarSign, Activity, Clock, UserPlus, Phone } from "lucide-react";
+import { Users, Calendar as CalendarIcon, DollarSign, Activity, Clock, UserPlus, Phone } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Appointment {
   id: number;
@@ -55,6 +60,11 @@ export default function Dashboard() {
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [isDentistModalOpen, setIsDentistModalOpen] = useState(false);
   const [presentDentists, setPresentDentists] = useState<PresentDentist[]>([]);
+  const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const currentYear = new Date().getFullYear();
+
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
@@ -147,12 +157,14 @@ export default function Dashboard() {
     return dentist ? dentist.name : "Desconhecido";
   };
 
-  const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
-
   const handleNewPatient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newPatient = Object.fromEntries(formData.entries());
+
+    if (dateOfBirth) {
+      newPatient.date_of_birth = format(dateOfBirth, "yyyy-MM-dd");
+    }
 
     try {
       const response = await fetch('http://localhost:3000/api/patients', {
@@ -164,6 +176,7 @@ export default function Dashboard() {
       if (response.ok) {
         toast({ title: "Sucesso", description: "Paciente adicionado com sucesso" });
         setIsNewPatientModalOpen(false);
+        setDateOfBirth(undefined);
         fetchDashboardData(); // Refresh dashboard data
       } else {
         const errorData = await response.json();
@@ -199,7 +212,7 @@ export default function Dashboard() {
               Novo Paciente
             </Button>
             <Button className="bg-card text-primary hover:bg-card/90">
-              <Calendar className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4" />
               Agendar Consulta
             </Button>
           </div>
@@ -220,7 +233,7 @@ export default function Dashboard() {
             <StatCard
               title="Consultas de Hoje"
               value={todayAppointments.toString()}
-              icon={Calendar}
+              icon={CalendarIcon}
               trend={{ value: "", positive: true }} // Trend data not available from backend yet
             />   
           {currentUser?.role === 'admin' && (
@@ -323,7 +336,7 @@ export default function Dashboard() {
                 Adicionar Novo Paciente
               </Button>
               <Button variant="outline" className="w-full justify-start">
-                <Calendar className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4" />
                 Agendar Consulta
               </Button>
               {currentUser?.role !== 'receptionist' && (
@@ -367,7 +380,36 @@ export default function Dashboard() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date_of_birth">Data de Nascimento</Label>
-                <Input id="date_of_birth" name="date_of_birth" type="date" required />
+                <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateOfBirth && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateOfBirth ? format(dateOfBirth, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      locale={ptBR}
+                      mode="single"
+                      selected={dateOfBirth}
+                      onSelect={(date) => {
+                        setDateOfBirth(date);
+                        setIsDatePopoverOpen(false);
+                      }}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={currentYear - 120}
+                      toYear={currentYear}
+                      disabled={{ after: new Date() }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
