@@ -136,3 +136,32 @@ export const getActiveDentistsToday = async () => {
 
   return result.rows;
 };
+
+export const getAvailableSlotsForWeek = async (dentistIds: string[]) => {
+  const slotsByDentist: { [key: string]: { [key: string]: any[] } } = {};
+
+  let targetDentistIds: string[] = dentistIds;
+  if (targetDentistIds.length === 0) {
+    const allDentists = await getAllDentists();
+    targetDentistIds = allDentists.map(d => String(d.id));
+  }
+
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() + i);
+    const dateString = date.toISOString().split('T')[0];
+
+    for (const dentistId of targetDentistIds) {
+      if (!slotsByDentist[dentistId]) {
+        slotsByDentist[dentistId] = {};
+      }
+      const availableSlots = await getAvailableSlots(dentistId, dateString);
+      slotsByDentist[dentistId][dateString] = availableSlots;
+    }
+  }
+
+  return slotsByDentist;
+};
