@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Users, Calendar, DollarSign, Activity, Clock, UserPlus } from "lucide-react";
+import { Users, Calendar, DollarSign, Activity, Clock, UserPlus, Phone } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 interface Appointment {
   id: number;
@@ -24,6 +25,12 @@ interface Patient {
 interface Dentist {
   id: number;
   name: string;
+  phone?: string;
+}
+
+interface PresentDentist extends Dentist {
+  start_time: string;
+  end_time: string;
 }
 
 interface Finance {
@@ -43,12 +50,31 @@ export default function Dashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [isDentistModalOpen, setIsDentistModalOpen] = useState(false);
+  const [presentDentists, setPresentDentists] = useState<PresentDentist[]>([]);
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
   useEffect(() => {
     fetchDashboardData();
+    fetchActiveDentistsToday();
   }, []);
+
+  const fetchActiveDentistsToday = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/dentists/active-today');
+      if (response.ok) {
+        const data: PresentDentist[] = await response.json();
+        setPresentDentists(data);
+        const uniqueDentists = new Set(data.map(d => d.id));
+        setActiveDentists(uniqueDentists.size);
+      } else {
+        toast({ title: "Erro", description: "Falha ao buscar dentistas presentes", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro de Rede", description: "Não foi possível conectar ao servidor para buscar dentistas.", variant: "destructive" });
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -65,7 +91,6 @@ export default function Dashboard() {
       if (dentistsResponse.ok) {
         const dentistsData = await dentistsResponse.json();
         setDentists(dentistsData);
-        setActiveDentists(dentistsData.length);
       }
 
       // Fetch Appointments
@@ -119,13 +144,23 @@ export default function Dashboard() {
     return dentist ? dentist.name : "Desconhecido";
   };
 
+  const groupedPresentDentists = presentDentists.reduce((acc, dentist) => {
+    let group = acc.find(d => d.id === dentist.id);
+    if (!group) {
+      group = { ...dentist, schedules: [] };
+      acc.push(group);
+    }
+    group.schedules.push({ start_time: dentist.start_time, end_time: dentist.end_time });
+    return acc;
+  }, [] as (PresentDentist & { schedules: { start_time: string; end_time: string }[] })[]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-gradient-primary px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-primary-foreground">Painel</h1>
+            <h1 className="text-3x1 font-bold text-primary-foreground">Painel</h1>
             <p className="mt-1 text-primary-foreground/80">Bem-vindo de volta! Aqui está a visão geral da sua clínica.</p>
           </div>
           <div className="flex gap-3">
@@ -166,11 +201,48 @@ export default function Dashboard() {
               trend={{ value: "", positive: true }} // Trend data not available from backend yet
             />
           )}
-            <StatCard
-              title="Dentistas Ativos"
-              value={activeDentists.toString()}
-              icon={Activity}
-            />
+          <Dialog open={isDentistModalOpen} onOpenChange={setIsDentistModalOpen}>
+            <DialogTrigger asChild>
+              <StatCard
+                title="Dentistas Ativos"
+                value={activeDentists.toString()}
+                icon={Activity}
+                trend={{ value: "", positive: true }}
+              />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Dentistas Presentes Hoje</DialogTitle>
+                <DialogDescription>Lista de dentistas com horário de trabalho hoje.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {groupedPresentDentists.length > 0 ? (
+                  groupedPresentDentists.map((dentist) => (
+                    <div key={dentist.id} className="p-2 rounded-md border">
+                      <h3 className="font-semibold text-lg">{dentist.name}</h3>
+                      <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <Phone className="w-4 h-4 mr-2" />
+                        <span>{dentist.phone}</span>
+                      </div>
+                      <div className="mt-2">
+                        <h4 className="font-medium text-sm mb-1">Horários:</h4>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {dentist.schedules.map((schedule, index) => (
+                            <li key={index} className="flex items-center">
+                              <Clock className="w-4 h-4 mr-2" />
+                              <span>{schedule.start_time.substring(0, 5)} - {schedule.end_time.substring(0, 5)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p>Nenhum dentista presente hoje.</p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">

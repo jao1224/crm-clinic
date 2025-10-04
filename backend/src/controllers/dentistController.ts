@@ -10,6 +10,15 @@ export const getAllDentists = async (req: Request, res: Response) => {
   }
 };
 
+export const getActiveDentistsToday = async (req: Request, res: Response) => {
+  try {
+    const dentists = await dentistService.getActiveDentistsToday();
+    res.json(dentists);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching active dentists for today', error });
+  }
+};
+
 export const getDentistById = async (req: Request, res: Response) => {
   try {
     const dentist = await dentistService.getDentistById(req.params.id);

@@ -3,6 +3,7 @@ import * as dentistController from '../controllers/dentistController';
 
 const router = Router();
 
+router.get('/active-today', dentistController.getActiveDentistsToday);
 router.get('/', dentistController.getAllDentists);
 router.get('/:id', dentistController.getDentistById);
 router.post('/', dentistController.createDentist);

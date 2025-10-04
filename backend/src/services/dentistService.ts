@@ -119,3 +119,20 @@ export const getAvailableSlots = async (dentistId: string, date: string) => {
 
   return availableSlots;
 };
+
+export const getActiveDentistsToday = async () => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const today = new Date();
+  const dayOfWeek = days[today.getDay()];
+
+  const result = await pool.query(
+    `SELECT d.id, d.name, d.phone, ds.start_time, ds.end_time 
+     FROM dentists d
+     JOIN dentist_schedules ds ON d.id = ds.dentist_id
+     WHERE ds.day_of_week = $1
+     ORDER BY d.name, ds.start_time`,
+    [dayOfWeek]
+  );
+
+  return result.rows;
+};
