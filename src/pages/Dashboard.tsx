@@ -233,12 +233,14 @@ export default function Dashboard() {
           )}
           <Dialog open={isDentistModalOpen} onOpenChange={setIsDentistModalOpen}>
             <DialogTrigger asChild>
-              <StatCard
-                title="Dentistas Ativos"
-                value={activeDentists.toString()}
-                icon={Activity}
-                trend={{ value: "", positive: true }}
-              />
+              <div className="cursor-pointer">
+                <StatCard
+                  title="Dentistas Ativos"
+                  value={activeDentists.toString()}
+                  icon={Activity}
+                  trend={{ value: "", positive: true }}
+                />
+              </div>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
