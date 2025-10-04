@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Appointment {
   id: number;
@@ -144,6 +147,33 @@ export default function Dashboard() {
     return dentist ? dentist.name : "Desconhecido";
   };
 
+  const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
+
+  const handleNewPatient = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newPatient = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch('http://localhost:3000/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPatient),
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Paciente adicionado com sucesso" });
+        setIsNewPatientModalOpen(false);
+        fetchDashboardData(); // Refresh dashboard data
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao adicionar paciente", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao adicionar paciente", variant: "destructive" });
+    }
+  };
+
   const groupedPresentDentists = presentDentists.reduce((acc, dentist) => {
     let group = acc.find(d => d.id === dentist.id);
     if (!group) {
@@ -164,7 +194,7 @@ export default function Dashboard() {
             <p className="mt-1 text-primary-foreground/80">Bem-vindo de volta! Aqui está a visão geral da sua clínica.</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-card text-primary hover:bg-card/90">
+            <Button className="bg-card text-primary hover:bg-card/90" onClick={() => setIsNewPatientModalOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               Novo Paciente
             </Button>
@@ -286,7 +316,7 @@ export default function Dashboard() {
               <CardTitle>Ações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setIsNewPatientModalOpen(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Adicionar Novo Paciente
               </Button>
@@ -310,6 +340,57 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isNewPatientModalOpen} onOpenChange={setIsNewPatientModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar Novo Paciente</DialogTitle>
+            <DialogDescription>Insira as informações do paciente para criar um novo prontuário</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNewPatient} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome Completo</Label>
+                <Input id="name" name="name" required placeholder="John Doe" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input id="email" name="email" type="email" required placeholder="john@email.com" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input id="phone" name="phone" required placeholder="(555) 123-4567" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Data de Nascimento</Label>
+                <Input id="date_of_birth" name="date_of_birth" type="date" required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF</Label>
+                <Input id="cpf" name="cpf" required placeholder="123.456.789-00" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Endereço</Label>
+              <Input id="address" name="address" placeholder="123 Main St, City, State" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="medical_history">Histórico Médico</Label>
+              <Textarea id="medical_history" name="medical_history" placeholder="Alergias, condições, medicamentos..." />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsNewPatientModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Registrar Paciente</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
