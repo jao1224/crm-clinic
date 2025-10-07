@@ -60,9 +60,6 @@ CREATE TABLE dentist_schedules (
 
 -- Mock Data
 
-INSERT INTO users (username, password, name, role) VALUES
-('admin', 'admin', 'Admin User', 'admin'),
-('dentist', 'dentist', 'Dentist User', 'dentist');
 
 INSERT INTO patients (name, email, phone, date_of_birth, address, medical_history, cpf) VALUES
 ('Sarah Johnson', 'sarah.j@email.com', '(555) 123-4567', '1990-05-15', '123 Main St, City, State', 'Peanut allergy', '111.111.111-11'),

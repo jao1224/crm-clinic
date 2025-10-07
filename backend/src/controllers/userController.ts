@@ -23,6 +23,15 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const seedAdminUser = async (req: Request, res: Response) => {
+  try {
+    const newUser = await userService.seedAdminUser();
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(500).json({ message: 'Error seeding admin user', error });
+  }
+};
+
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const user = await userService.getUserById(req.params.id);

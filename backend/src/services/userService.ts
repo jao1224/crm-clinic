@@ -1,4 +1,5 @@
 import pool from '../config/database';
+import bcrypt from 'bcrypt';
 
 export const getAllUsers = async () => {
   const result = await pool.query('SELECT id, username, name, role FROM users');
@@ -9,7 +10,7 @@ export const login = async (credentials: any) => {
   const { username, password } = credentials;
   const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
   const user = result.rows[0];
-  if (user && user.password === password) {
+  if (user && await bcrypt.compare(password, user.password)) {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
@@ -23,9 +24,10 @@ export const getUserById = async (id: string) => {
 
 export const createUser = async (user: any) => {
   const { username, password, name, role } = user;
+  const hashedPassword = await bcrypt.hash(password, 10);
   const result = await pool.query(
     'INSERT INTO users (username, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id, username, name, role',
-    [username, password, name, role]
+    [username, hashedPassword, name, role]
   );
   return result.rows[0];
 };
@@ -41,5 +43,25 @@ export const updateUser = async (id: string, user: any) => {
 
 export const deleteUser = async (id: string) => {
   const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id, username, name, role', [id]);
+  return result.rows[0];
+};
+
+export const seedAdminUser = async () => {
+  const username = 'admin';
+  const password = 'admin';
+  const name = 'Admin User';
+  const role = 'admin';
+
+  // Verifica se o usuário já existe
+  const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  if (existingUser.rows.length > 0) {
+    throw new Error('Admin user already exists.');
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const result = await pool.query(
+    'INSERT INTO users (username, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id, username, name, role',
+    [username, hashedPassword, name, role]
+  );
   return result.rows[0];
 };

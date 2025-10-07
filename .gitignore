@@ -23,3 +23,12 @@ backend/dist
 *.njsproj
 *.sln
 *.sw?backend/bun.lock
+
+# Environment variables
+.env
+
+# Vite cache
+.vite/
+
+# Bun lockfile
+backend/bun.lock
