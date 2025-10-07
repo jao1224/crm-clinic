@@ -27,8 +27,11 @@ export const createPatient = async (req: Request, res: Response) => {
   try {
     const newPatient = await patientService.createPatient(req.body);
     res.status(201).json(newPatient);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating patient', error });
+  } catch (error: any) {
+    if (error.message.includes('cadastrado')) {
+      return res.status(409).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Error creating patient', error: error.message });
   }
 };
 

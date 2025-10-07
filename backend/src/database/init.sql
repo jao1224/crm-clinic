@@ -58,8 +58,22 @@ CREATE TABLE dentist_schedules (
     UNIQUE (dentist_id, day_of_week, start_time, end_time)
 );
 
--- Mock Data
+CREATE TABLE chatbot_sessions (
+    session_id VARCHAR(255) PRIMARY KEY, -- Chave primária, ID da execução do n8n
+    user_identifier VARCHAR(255) NOT NULL, -- Identificador do usuário, como o telefone
+    current_agent VARCHAR(50) NOT NULL DEFAULT 'Porteiro', -- Agente atual, começa com 'Porteiro'
+    current_status VARCHAR(50), -- Último estado da conversa
+    collected_data JSONB, -- Dados coletados em formato JSON
+    conversation_history JSONB, -- Histórico da conversa em formato JSON
+    is_active BOOLEAN NOT NULL DEFAULT TRUE, -- Sessão ativa por padrão
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Data de criação
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP -- Data da última atualização
+);
 
+-- Criar um índice no identificador do usuário para buscas rápidas
+CREATE INDEX idx_user_identifier ON chatbot_sessions (user_identifier);
+
+-- Mock Data
 
 INSERT INTO patients (name, email, phone, date_of_birth, address, medical_history, cpf) VALUES
 ('Sarah Johnson', 'sarah.j@email.com', '(555) 123-4567', '1990-05-15', '123 Main St, City, State', 'Peanut allergy', '111.111.111-11'),
