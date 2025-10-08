@@ -33,6 +33,11 @@ interface Dentist {
   specialty: string;
 }
 
+interface Service {
+  id_servico: number;
+  nome_servico: string;
+}
+
 interface AvailabilitySlot {
   start_time: string;
   end_time: string;
@@ -41,6 +46,7 @@ interface AvailabilitySlot {
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
@@ -61,6 +67,7 @@ export default function Patients() {
   useEffect(() => {
     fetchPatients();
     fetchDentists();
+    fetchServices();
   }, []);
 
   useEffect(() => {
@@ -108,6 +115,20 @@ export default function Patients() {
       }
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao buscar dentistas", variant: "destructive" });
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/services', {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setServices(data);
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao buscar serviços", variant: "destructive" });
     }
   };
 
@@ -164,7 +185,7 @@ export default function Patients() {
     
     const appointmentData = {
       dentist_id: formData.get('dentist_id'),
-      type: formData.get('type'),
+      service_id: formData.get('service_id'),
       notes: formData.get('notes'),
       start_time: new Date(selectedSlot.start_time).toISOString(),
       end_time: new Date(selectedSlot.end_time).toISOString(),
@@ -503,14 +524,12 @@ export default function Patients() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="type">Tipo de Consulta</Label>
-                          <select id="type" name="type" required className="w-full rounded-md border border-input bg-background px-3 py-2">
-                            <option value="">Selecione o tipo</option>
-                            <option value="checkup">Check-up Regular</option>
-                            <option value="cleaning">Limpeza Dental</option>
-                            <option value="filling">Obturação</option>
-                            <option value="extraction">Extração</option>
-                            <option value="emergency">Emergência</option>
+                          <Label htmlFor="service_id">Tipo de Consulta</Label>
+                          <select id="service_id" name="service_id" required className="w-full rounded-md border border-input bg-background px-3 py-2">
+                            <option value="">Selecione o serviço</option>
+                            {services.map(service => (
+                              <option key={service.id_servico} value={service.id_servico}>{service.nome_servico}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">

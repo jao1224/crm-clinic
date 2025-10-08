@@ -21,7 +21,7 @@ interface Appointment {
   dentist_id: number;
   start_time: string;
   end_time: string;
-  type: string;
+  service_id: number;
   notes: string;
   status: string;
 }
@@ -35,6 +35,11 @@ interface Dentist {
   id: number;
   name: string;
   phone?: string;
+}
+
+interface Service {
+  id_servico: number;
+  nome_servico: string;
 }
 
 interface PresentDentist extends Dentist {
@@ -59,6 +64,7 @@ export default function Dashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [isDentistModalOpen, setIsDentistModalOpen] = useState(false);
   const [presentDentists, setPresentDentists] = useState<PresentDentist[]>([]);
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
@@ -105,6 +111,13 @@ export default function Dashboard() {
       if (dentistsResponse.ok) {
         const dentistsData = await dentistsResponse.json();
         setDentists(dentistsData);
+      }
+
+      // Fetch Services
+      const servicesResponse = await fetch('http://localhost:3000/api/services', { credentials: 'include' });
+      if (servicesResponse.ok) {
+        const servicesData = await servicesResponse.json();
+        setServices(servicesData);
       }
 
       // Fetch Appointments
@@ -156,6 +169,11 @@ export default function Dashboard() {
   const getDentistName = (dentistId: number) => {
     const dentist = dentists.find((d) => d.id === dentistId);
     return dentist ? dentist.name : "Desconhecido";
+  };
+
+  const getServiceName = (serviceId: number) => {
+    const service = services.find((s) => s.id_servico === serviceId);
+    return service ? service.nome_servico : "Serviço não encontrado";
   };
 
   const handleNewPatient = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -318,7 +336,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{getPatientName(appointment.patient_id)}</p>
-                        <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                        <p className="text-sm text-muted-foreground">{getServiceName(appointment.service_id)}</p>
                       </div>
                     </div>
                     <div className="text-right">

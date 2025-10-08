@@ -11,7 +11,7 @@ export const getAppointmentById = async (id: string) => {
 };
 
 export const createAppointment = async (appointment: any) => {
-  const { patient_id, dentist_id, start_time, end_time, type, notes, status } = appointment;
+  const { patient_id, dentist_id, service_id, start_time, end_time, type, notes, status } = appointment;
 
   // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista
   const conflictResult = await pool.query(
@@ -24,14 +24,14 @@ export const createAppointment = async (appointment: any) => {
   }
 
   const result = await pool.query(
-    'INSERT INTO appointments (patient_id, dentist_id, start_time, end_time, type, notes, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-    [patient_id, dentist_id, start_time, end_time, type, notes, status]
+    'INSERT INTO appointments (patient_id, dentist_id, service_id, start_time, end_time, type, notes, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+    [patient_id, dentist_id, service_id, start_time, end_time, type, notes, status]
   );
   return result.rows[0];
 };
 
 export const updateAppointment = async (id: string, appointment: any) => {
-  const { patient_id, dentist_id, start_time, end_time, type, notes, status } = appointment;
+  const { patient_id, dentist_id, service_id, start_time, end_time, type, notes, status } = appointment;
 
   // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista, excluindo o agendamento atual
   const conflictResult = await pool.query(
@@ -44,8 +44,8 @@ export const updateAppointment = async (id: string, appointment: any) => {
   }
 
   const result = await pool.query(
-    'UPDATE appointments SET patient_id = $1, dentist_id = $2, start_time = $3, end_time = $4, type = $5, notes = $6, status = $7 WHERE id = $8 RETURNING *',
-    [patient_id, dentist_id, start_time, end_time, type, notes, status, id]
+    'UPDATE appointments SET patient_id = $1, dentist_id = $2, start_time = $3, end_time = $4, type = $5, notes = $6, status = $7, service_id = $8 WHERE id = $9 RETURNING *',
+    [patient_id, dentist_id, start_time, end_time, type, notes, status, service_id, id]
   );
   return result.rows[0];
 };

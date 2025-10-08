@@ -19,7 +19,7 @@ interface Appointment {
   dentist_id: number;
   start_time: string;
   end_time: string;
-  type: string;
+  service_id: number;
   notes: string;
   status: string;
 }
@@ -34,10 +34,16 @@ interface Dentist {
   name: string;
 }
 
+interface Service {
+  id_servico: number;
+  nome_servico: string;
+}
+
 export default function Appointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedDentistId, setSelectedDentistId] = useState<string>("");
   const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<Appointment | null>(null);
@@ -55,6 +61,7 @@ export default function Appointments() {
     fetchAppointments();
     fetchPatients();
     fetchDentists();
+    fetchServices();
 
     const queryParams = new URLSearchParams(location.search);
     const dentistIdFromUrl = queryParams.get('dentistId');
@@ -128,6 +135,18 @@ export default function Appointments() {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/services', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setServices(data);
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao buscar serviços", variant: "destructive" });
+    }
+  };
+
   const getPatientName = (patientId: number) => {
     const patient = patients.find((p) => p.id === patientId);
     return patient ? patient.name : "Desconhecido";
@@ -136,6 +155,11 @@ export default function Appointments() {
   const getDentistName = (dentistId: number) => {
     const dentist = dentists.find((d) => d.id === dentistId);
     return dentist ? dentist.name : "Desconhecido";
+  };
+
+  const getServiceName = (serviceId: number) => {
+    const service = services.find((s) => s.id_servico === serviceId);
+    return service ? service.nome_servico : "Serviço não encontrado";
   };
 
   const getStatusColor = (status: string) => {
@@ -158,41 +182,32 @@ export default function Appointments() {
       return;
     }
 
-    const [hours, minutes] = newAppointmentTime.split(':');
-    const d = new Date(newAppointmentDate);
+    // 1. Criar a nova data de início baseada na seleção do usuário
+    const [hours, minutes] = newAppointmentTime.split(':').map(Number);
+    const newStartTime = new Date(newAppointmentDate);
+    newStartTime.setHours(hours, minutes, 0, 0);
 
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    // 2. Calcular a duração da consulta original
+    const originalStartTime = new Date(selectedAppointmentForReschedule.start_time);
+    const originalEndTime = new Date(selectedAppointmentForReschedule.end_time);
+    const duration = originalEndTime.getTime() - originalStartTime.getTime();
 
-    const startTimeString = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+    // 3. Calcular a nova data de término
+    const newEndTime = new Date(newStartTime.getTime() + duration);
 
-    const duration = new Date(selectedAppointmentForReschedule.end_time).getTime() - new Date(selectedAppointmentForReschedule.start_time).getTime();
-    
-    const tempStartDate = new Date(newAppointmentDate);
-    tempStartDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-    
-    const newEndTime = new Date(tempStartDate.getTime() + duration);
-
-    const endYear = newEndTime.getFullYear();
-    const endMonth = String(newEndTime.getMonth() + 1).padStart(2, '0');
-    const endDay = String(newEndTime.getDate()).padStart(2, '0');
-    const endHours = String(newEndTime.getHours()).padStart(2, '0');
-    const endMinutes = String(newEndTime.getMinutes()).padStart(2, '0');
-    const endSeconds = String(newEndTime.getSeconds()).padStart(2, '0');
-
-    const endTimeString = `${endYear}-${endMonth}-${endDay} ${endHours}:${endMinutes}:${endSeconds}`;
-
+    // 4. Enviar os dados para a API no formato ISO (UTC)
     try {
       const response = await fetch(`http://localhost:3000/api/appointments/${selectedAppointmentForReschedule.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          // Incluir credenciais se a rota for protegida
+          // credentials: 'include',
         },
         body: JSON.stringify({
           ...selectedAppointmentForReschedule,
-          start_time: startTimeString,
-          end_time: endTimeString,
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString(),
           status: 'pending',
         }),
       });
@@ -270,7 +285,7 @@ export default function Appointments() {
                       <div key={appointment.id} className="flex justify-between items-center p-2 border-b last:border-b-0">
                         <div>
                           <p className="font-medium">{getPatientName(appointment.patient_id)}</p>
-                          <p className="text-sm text-muted-foreground">{appointment.type} com {getDentistName(appointment.dentist_id)}</p>
+                          <p className="text-sm text-muted-foreground">{getServiceName(appointment.service_id)} com {getDentistName(appointment.dentist_id)}</p>
                         </div>
                         <p className="text-sm font-medium">{`${new Date(appointment.start_time).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}`}</p>
                       </div>
@@ -338,7 +353,7 @@ export default function Appointments() {
                           </div>
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />
-                            {appointment.type}
+                            {getServiceName(appointment.service_id)}
                           </div>
                         </div>
                       </div>
@@ -389,7 +404,7 @@ export default function Appointments() {
                               <div className="grid grid-cols-2 gap-4">
                                  <div>
                                   <h4 className="font-semibold">Tipo</h4>
-                                  <p>{selectedAppointmentForDetails.type}</p>
+                                  <p>{getServiceName(selectedAppointmentForDetails.service_id)}</p>
                                 </div>
                                  <div>
                                   <h4 className="font-semibold">Status</h4>

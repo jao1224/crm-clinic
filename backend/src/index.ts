@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes';
 import dentistRoutes from './routes/dentistRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import financeRoutes from './routes/financeRoutes';
+import serviceRoutes from './routes/serviceRoutes';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/dentists', dentistRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/finances', financeRoutes);
+app.use('/api/services', serviceRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');

@@ -32,6 +32,7 @@ CREATE TABLE appointments (
     id SERIAL PRIMARY KEY,
     patient_id INT REFERENCES patients(id),
     dentist_id INT REFERENCES dentists(id),
+    service_id INT REFERENCES services(id_servico),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     type VARCHAR(100),
@@ -46,6 +47,19 @@ CREATE TABLE finances (
     amount DECIMAL(10, 2) NOT NULL,
     date DATE NOT NULL,
     type VARCHAR(50) NOT NULL
+);
+
+-- Tabela para armazenar os serviços oferecidos pela clínica
+CREATE TABLE services (
+    id_servico SERIAL PRIMARY KEY,
+    nome_servico VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    valor_aproximado DECIMAL(10, 2) NOT NULL,
+    duracao_media_min INT NOT NULL,
+    palavras_chave TEXT[],
+    ativo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE dentist_schedules (
@@ -75,6 +89,10 @@ CREATE INDEX idx_user_identifier ON chatbot_sessions (user_identifier);
 
 -- Mock Data
 
+INSERT INTO services (nome_servico, descricao, valor_aproximado, duracao_media_min, palavras_chave) VALUES
+('Consulta de Rotina', 'Check-up geral e avaliação da saúde bucal.', 150.00, 30, ARRAY['checkup', 'avaliação', 'rotina']),
+('Limpeza Dental Profissional', 'Remoção de placa bacteriana e tártaro.', 200.00, 45, ARRAY['limpeza', 'profilaxia', 'tártaro']);
+
 INSERT INTO patients (name, email, phone, date_of_birth, address, medical_history, cpf) VALUES
 ('Sarah Johnson', 'sarah.j@email.com', '(555) 123-4567', '1990-05-15', '123 Main St, City, State', 'Peanut allergy', '111.111.111-11'),
 ('Michael Chen', 'm.chen@email.com', '(555) 234-5678', '1985-08-20', '456 Oak Ave, City, State', NULL, '222.222.222-22');
@@ -90,6 +108,6 @@ INSERT INTO dentist_schedules (dentist_id, day_of_week, start_time, end_time, sl
 (2, 'Tuesday', '10:00:00', '18:00:00', 60),
 (2, 'Thursday', '10:00:00', '18:00:00', 60);
 
-INSERT INTO appointments (patient_id, dentist_id, start_time, end_time, type, notes, status) VALUES
-(1, 1, '2024-10-02 09:00:00', '2024-10-02 09:30:00', 'Checkup', NULL, 'confirmed'),
-(2, 2, '2024-10-02 10:30:00', '2024-10-02 11:30:00', 'Cleaning', NULL, 'confirmed');
+INSERT INTO appointments (patient_id, dentist_id, service_id, start_time, end_time, type, notes, status) VALUES
+(1, 1, 1, '2024-10-02 09:00:00', '2024-10-02 09:30:00', 'Checkup', NULL, 'confirmed'),
+(2, 2, 2, '2024-10-02 10:30:00', '2024-10-02 11:30:00', 'Cleaning', NULL, 'confirmed');
