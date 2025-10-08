@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const getAllUsers = async () => {
   const result = await pool.query('SELECT id, username, name, role FROM users');
@@ -12,7 +13,12 @@ export const login = async (credentials: any) => {
   const user = result.rows[0];
   if (user && await bcrypt.compare(password, user.password)) {
     const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET || 'your_default_secret',
+      { expiresIn: '1h' }
+    );
+    return { token, user: userWithoutPassword };
   }
   return null;
 };

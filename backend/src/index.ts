@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import pool from './config/database';
 import patientRoutes from './routes/patientRoutes';
 import userRoutes from './routes/userRoutes';
@@ -11,7 +12,8 @@ import financeRoutes from './routes/financeRoutes';
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:8081', credentials: true }));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
