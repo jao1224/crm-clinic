@@ -21,8 +21,8 @@ FROM nginx:1.25-alpine
 # Copia os arquivos de build do estágio anterior para o diretório do Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copia uma configuração personalizada do Nginx (opcional, mas recomendado)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copia uma configuração personalizada do Nginx para SPA
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expõe a porta 80
 EXPOSE 80

@@ -55,6 +55,24 @@ export const getUserById = async (req: Request, res: Response) => {
 export const createUser = async (req: Request, res: Response) => {
   try {
     const newUser = await userService.createUser(req.body);
+    
+    // Se o usuário criado tem role "dentist", criar também um registro na tabela dentists
+    if (req.body.role === 'dentist') {
+      const dentistData = {
+        name: req.body.name,
+        specialty: req.body.specialty || 'Odontologia Geral',
+        email: req.body.email || `${req.body.username}@clinica.com`,
+        phone: req.body.phone || '',
+        experience: req.body.experience || '0 anos',
+        patients: 0,
+        specializations: req.body.specializations || ['Odontologia Geral']
+      };
+      
+      // Importar e usar o serviço de dentistas
+      const dentistService = require('../services/dentistService');
+      await dentistService.createDentist(dentistData);
+    }
+    
     res.status(201).json(newUser);
   } catch (error) {
     res.status(500).json({ message: 'Error creating user', error });
