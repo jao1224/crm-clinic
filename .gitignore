@@ -24,9 +24,6 @@ backend/dist
 *.sln
 *.sw?backend/bun.lock
 
-# Environment variables
-.env
-
 # Vite cache
 .vite/
 
