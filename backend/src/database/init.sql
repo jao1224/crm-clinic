@@ -28,6 +28,19 @@ CREATE TABLE dentists (
     specializations TEXT[]
 );
 
+-- Tabela para armazenar os serviços oferecidos pela clínica
+CREATE TABLE services (
+    id_servico SERIAL PRIMARY KEY,
+    nome_servico VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    valor_aproximado DECIMAL(10, 2) NOT NULL,
+    duracao_media_min INT NOT NULL,
+    palavras_chave TEXT[],
+    ativo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE appointments (
     id SERIAL PRIMARY KEY,
     patient_id INT REFERENCES patients(id),
@@ -47,19 +60,6 @@ CREATE TABLE finances (
     amount DECIMAL(10, 2) NOT NULL,
     date DATE NOT NULL,
     type VARCHAR(50) NOT NULL
-);
-
--- Tabela para armazenar os serviços oferecidos pela clínica
-CREATE TABLE services (
-    id_servico SERIAL PRIMARY KEY,
-    nome_servico VARCHAR(255) NOT NULL,
-    descricao TEXT,
-    valor_aproximado DECIMAL(10, 2) NOT NULL,
-    duracao_media_min INT NOT NULL,
-    palavras_chave TEXT[],
-    ativo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE dentist_schedules (
@@ -111,3 +111,7 @@ INSERT INTO dentist_schedules (dentist_id, day_of_week, start_time, end_time, sl
 INSERT INTO appointments (patient_id, dentist_id, start_time, end_time, type, notes, status) VALUES
 (1, 1, '2024-10-02 09:00:00', '2024-10-02 09:30:00', 'Checkup', NULL, 'confirmed'),
 (2, 2, '2024-10-02 10:30:00', '2024-10-02 11:30:00', 'Cleaning', NULL, 'confirmed');
+
+-- Inserir usuário de teste para login
+INSERT INTO users (username, password, name, role) VALUES
+('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador', 'admin');

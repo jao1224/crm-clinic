@@ -42,8 +42,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full bg-background">
       {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-card flex flex-col">
-        <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-          <Activity className="h-8 w-8 text-primary" />
+        <div className="flex h-16 items-center gap-3 border-b border-border px-6">
+          <img src="/logo.svg" alt="DentalCare Logo" className="h-10 w-10" />
           <div>
             <h1 className="text-xl font-bold text-foreground">DentalCare</h1>
             <p className="text-xs text-muted-foreground">Gerenciamento da Clínica</p>

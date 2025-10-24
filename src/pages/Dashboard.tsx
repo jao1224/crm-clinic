@@ -68,8 +68,11 @@ export default function Dashboard() {
   const [isDentistModalOpen, setIsDentistModalOpen] = useState(false);
   const [presentDentists, setPresentDentists] = useState<PresentDentist[]>([]);
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
+  const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [isAppointmentDatePopoverOpen, setIsAppointmentDatePopoverOpen] = useState(false);
   const currentYear = new Date().getFullYear();
 
   const { toast } = useToast();
@@ -206,6 +209,51 @@ export default function Dashboard() {
     }
   };
 
+  const handleNewAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const appointmentData = Object.fromEntries(formData.entries());
+
+    if (appointmentDate) {
+      const startTime = new Date(appointmentDate);
+      const [hours, minutes] = (appointmentData.time as string).split(':');
+      startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const endTime = new Date(startTime);
+      endTime.setHours(startTime.getHours() + 1); // 1 hora de duração padrão
+
+      const newAppointment = {
+        patient_id: parseInt(appointmentData.patient_id as string),
+        dentist_id: parseInt(appointmentData.dentist_id as string),
+        service_id: parseInt(appointmentData.service_id as string),
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        notes: appointmentData.notes || '',
+        status: 'pending'
+      };
+
+      try {
+        const response = await fetch('http://localhost:3000/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newAppointment),
+        });
+
+        if (response.ok) {
+          toast({ title: "Sucesso", description: "Consulta agendada com sucesso" });
+          setIsAppointmentModalOpen(false);
+          setAppointmentDate(undefined);
+          fetchDashboardData(); // Refresh dashboard data
+        } else {
+          const errorData = await response.json();
+          toast({ title: "Erro", description: errorData.message || "Falha ao agendar consulta", variant: "destructive" });
+        }
+      } catch (error) {
+        toast({ title: "Erro", description: "Falha ao agendar consulta", variant: "destructive" });
+      }
+    }
+  };
+
   const groupedPresentDentists = presentDentists.reduce((acc, dentist) => {
     let group = acc.find(d => d.id === dentist.id);
     if (!group) {
@@ -230,7 +278,7 @@ export default function Dashboard() {
               <UserPlus className="mr-2 h-4 w-4" />
               Novo Paciente
             </Button>
-            <Button className="bg-card text-primary hover:bg-card/90">
+            <Button className="bg-card text-primary hover:bg-card/90" onClick={() => setIsAppointmentModalOpen(true)}>
               <CalendarIcon className="mr-2 h-4 w-4" />
               Agendar Consulta
             </Button>
@@ -359,7 +407,7 @@ export default function Dashboard() {
                 <UserPlus className="mr-2 h-4 w-4" />
                 Adicionar Novo Paciente
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setIsAppointmentModalOpen(true)}>
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 Agendar Consulta
               </Button>
@@ -379,6 +427,98 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Agendar Nova Consulta</DialogTitle>
+            <DialogDescription>Preencha os dados para agendar uma nova consulta</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNewAppointment} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="patient_id">Paciente</Label>
+                <select id="patient_id" name="patient_id" required className="w-full p-2 border border-border rounded-md">
+                  <option value="">Selecione um paciente</option>
+                  {patients.map((patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dentist_id">Dentista</Label>
+                <select id="dentist_id" name="dentist_id" required className="w-full p-2 border border-border rounded-md">
+                  <option value="">Selecione um dentista</option>
+                  {dentists.map((dentist) => (
+                    <option key={dentist.id} value={dentist.id}>
+                      {dentist.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="service_id">Serviço</Label>
+                <select id="service_id" name="service_id" required className="w-full p-2 border border-border rounded-md">
+                  <option value="">Selecione um serviço</option>
+                  {services.map((service) => (
+                    <option key={service.id_servico} value={service.id_servico}>
+                      {service.nome_servico}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Horário</Label>
+                <Input id="time" name="time" type="time" required />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="appointment_date">Data da Consulta</Label>
+              <Popover open={isAppointmentDatePopoverOpen} onOpenChange={setIsAppointmentDatePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !appointmentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {appointmentDate ? format(appointmentDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    locale={ptBR}
+                    mode="single"
+                    selected={appointmentDate}
+                    onSelect={(date) => {
+                      setAppointmentDate(date);
+                      setIsAppointmentDatePopoverOpen(false);
+                    }}
+                    initialFocus
+                    disabled={{ before: new Date() }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações</Label>
+              <Textarea id="notes" name="notes" placeholder="Observações sobre a consulta..." />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsAppointmentModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Agendar Consulta</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isNewPatientModalOpen} onOpenChange={setIsNewPatientModalOpen}>
         <DialogContent className="max-w-2xl">
