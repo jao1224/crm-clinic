@@ -218,7 +218,7 @@ export default function Dashboard() {
       const startTime = new Date(appointmentDate);
       const [hours, minutes] = (appointmentData.time as string).split(':');
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      
+
       const endTime = new Date(startTime);
       endTime.setHours(startTime.getHours() + 1); // 1 hora de duração padrão
 
@@ -297,12 +297,12 @@ export default function Dashboard() {
               trend={{ value: "", positive: true }} // Trend data not available from backend yet
             />
           )}
-            <StatCard
-              title="Consultas de Hoje"
-              value={todayAppointments.toString()}
-              icon={CalendarIcon}
-              trend={{ value: "", positive: true }} // Trend data not available from backend yet
-            />   
+          <StatCard
+            title="Consultas de Hoje"
+            value={todayAppointments.toString()}
+            icon={CalendarIcon}
+            trend={{ value: "", positive: true }} // Trend data not available from backend yet
+          />
           {currentUser?.role === 'admin' && (
             <StatCard
               title="Receita Mensal"
@@ -412,10 +412,10 @@ export default function Dashboard() {
                 Agendar Consulta
               </Button>
               {currentUser?.role !== 'receptionist' && (
-              <Button variant="outline" className="w-full justify-start">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Registrar Pagamento
-              </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Registrar Pagamento
+                </Button>
               )}
               {currentUser?.role !== 'receptionist' && (
                 <Button variant="outline" className="w-full justify-start">

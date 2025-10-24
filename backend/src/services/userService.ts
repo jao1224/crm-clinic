@@ -30,6 +30,16 @@ export const getUserById = async (id: string) => {
 
 export const createUser = async (user: any) => {
   const { username, password, name, role } = user;
+  
+  // Verificar se o usuário já existe
+  const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  if (existingUser.rows.length > 0) {
+    const error = new Error('Nome de usuário já existe');
+    (error as any).code = '23505';
+    (error as any).constraint = 'users_username_key';
+    throw error;
+  }
+  
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await pool.query(
     'INSERT INTO users (username, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id, username, name, role',

@@ -74,8 +74,25 @@ export const createUser = async (req: Request, res: Response) => {
     }
     
     res.status(201).json(newUser);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating user', error });
+  } catch (error: any) {
+    console.error('Error creating user:', error);
+    
+    // Verificar se é erro de usuário duplicado
+    if (error.code === '23505' && error.constraint === 'users_username_key') {
+      return res.status(400).json({ message: 'Nome de usuário já existe. Escolha outro nome de usuário.' });
+    }
+    
+    // Verificar se é erro de email duplicado na tabela dentists
+    if (error.code === '23505' && error.constraint === 'dentists_email_key') {
+      return res.status(400).json({ message: 'Email já cadastrado para outro dentista.' });
+    }
+    
+    // Outros erros de constraint
+    if (error.code === '23505') {
+      return res.status(400).json({ message: 'Dados já cadastrados no sistema.' });
+    }
+    
+    res.status(500).json({ message: 'Erro ao criar usuário', error: error.message });
   }
 };
 
