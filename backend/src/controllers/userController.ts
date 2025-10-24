@@ -54,6 +54,8 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
+    console.log('Dados recebidos no backend:', req.body);
+    console.log('Role recebida:', req.body.role);
     const newUser = await userService.createUser(req.body);
     
     // Se o usuário criado tem role "dentist", criar também um registro na tabela dentists
@@ -61,7 +63,7 @@ export const createUser = async (req: Request, res: Response) => {
       const dentistData = {
         name: req.body.name,
         specialty: req.body.specialty || 'Odontologia Geral',
-        email: req.body.email || `${req.body.username}@clinica.com`,
+        email: `${req.body.username}@clinica.com`, // Email consistente baseado no username
         phone: req.body.phone || '',
         experience: req.body.experience || '0 anos',
         patients: 0,
@@ -111,14 +113,63 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request, res: Response) => {
   try {
+    console.log(`🗑️ Tentando excluir usuário ID: ${req.params.id}`);
+    
+    // Primeiro, verificar se o usuário existe e qual é o seu role
+    const user = await userService.getUserById(req.params.id);
+    if (!user) {
+      console.log(`❌ Usuário não encontrado: ${req.params.id}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
+
+    let dentistData = null;
+
+    // Se o usuário é um dentista, buscar dados do dentista antes de excluir
+    if (user.role === 'dentist') {
+      console.log(`🦷 Usuário é dentista, coletando dados antes da exclusão`);
+      const dentistService = require('../services/dentistService');
+      
+      try {
+        // Buscar dentista pelo nome exato
+        const dentists = await dentistService.getAllDentists();
+        const dentistToDelete = dentists.find((d: any) => d.name === user.name);
+        
+        if (dentistToDelete) {
+          console.log(`🎯 Dados do dentista coletados: ${dentistToDelete.name}`);
+          dentistData = dentistToDelete;
+        }
+      } catch (dentistError) {
+        console.error('❌ Erro ao coletar dados do dentista:', dentistError);
+      }
+    }
+
+    // Mover dados para tabela deletedusers antes de excluir
+    try {
+      console.log(`📦 Movendo usuário para tabela deletedusers`);
+      const pool = require('../config/database').default;
+      
+      await pool.query(
+        'INSERT INTO deletedusers (original_user_id, username, name, role, dentist_data) VALUES ($1, $2, $3, $4, $5)',
+        [user.id, user.username, user.name, user.role, dentistData ? JSON.stringify(dentistData) : null]
+      );
+      
+      console.log(`✅ Usuário movido para deletedusers: ${user.name}`);
+    } catch (moveError) {
+      console.error('❌ Erro ao mover para deletedusers:', moveError);
+    }
+
+    // Excluir o usuário
     const deletedUser = await userService.deleteUser(req.params.id);
     if (deletedUser) {
       res.json({ message: 'User deleted successfully' });
     } else {
       res.status(404).json({ message: 'User not found' });
     }
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting user', error });
+  } catch (error: any) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Error deleting user', error: error.message });
   }
 };
 
@@ -130,4 +181,113 @@ export const logout = (req: Request, res: Response) => {
 export const checkSession = (req: any, res: Response) => {
   // O middleware authenticateToken já validou o token e anexou o usuário ao req
   res.status(200).json(req.user);
+};
+
+export const deleteUserWithDentist = async (req: Request, res: Response) => {
+  try {
+    console.log(`🗑️ Excluindo usuário e dentista - ID: ${req.params.id}`);
+    
+    // Primeiro, verificar se o usuário existe e qual é o seu role
+    const user = await userService.getUserById(req.params.id);
+    if (!user) {
+      console.log(`❌ Usuário não encontrado: ${req.params.id}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
+
+    // Se o usuário é um dentista, excluir da tabela dentists PRIMEIRO
+    if (user.role === 'dentist') {
+      console.log(`🦷 Usuário é dentista, excluindo da tabela dentists primeiro`);
+      const dentistService = require('../services/dentistService');
+      
+      try {
+        // Buscar dentista pelo nome exato
+        const dentists = await dentistService.getAllDentists();
+        console.log(`📋 Dentistas encontrados: ${dentists.length}`);
+        
+        const dentistToDelete = dentists.find((d: any) => d.name === user.name);
+        
+        if (dentistToDelete) {
+          console.log(`🎯 Dentista encontrado para exclusão: ${dentistToDelete.name} (ID: ${dentistToDelete.id})`);
+          await dentistService.deleteDentist(dentistToDelete.id.toString());
+          console.log(`✅ Dentista excluído: ${user.name}`);
+        } else {
+          console.warn(`⚠️ Nenhum dentista encontrado com nome: ${user.name}`);
+        }
+      } catch (dentistError) {
+        console.error('❌ Erro ao excluir dentista:', dentistError);
+        return res.status(500).json({ message: 'Erro ao excluir dentista', error: dentistError });
+      }
+    }
+
+    // Depois excluir o usuário
+    console.log(`🗑️ Excluindo usuário: ${user.name}`);
+    const deletedUser = await userService.deleteUser(req.params.id);
+    
+    if (deletedUser) {
+      console.log(`✅ Usuário excluído com sucesso: ${user.name}`);
+      res.json({ 
+        message: 'User and dentist deleted successfully',
+        deletedUser: user.name,
+        wasDentist: user.role === 'dentist'
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error: any) {
+    console.error('❌ Erro ao excluir usuário:', error);
+    res.status(500).json({ message: 'Error deleting user', error: error.message });
+  }
+};
+
+export const getDeletedUsers = async (req: Request, res: Response) => {
+  try {
+    console.log('📋 Buscando usuários excluídos');
+    const pool = require('../config/database').default;
+    
+    const result = await pool.query(
+      'SELECT * FROM deletedusers ORDER BY deleted_at DESC'
+    );
+    
+    console.log(`✅ Encontrados ${result.rows.length} usuários excluídos`);
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar usuários excluídos:', error);
+    res.status(500).json({ message: 'Erro ao buscar usuários excluídos', error: error.message });
+  }
+};
+
+export const syncDentists = async (req: Request, res: Response) => {
+  try {
+    console.log('🔄 Sincronizando tabelas users e dentists');
+    
+    // Buscar todos os usuários dentistas
+    const dentistUsers = await userService.getAllUsers();
+    const dentistUsersFiltered = dentistUsers.filter((user: any) => user.role === 'dentist');
+    
+    // Buscar todos os dentistas
+    const dentistService = require('../services/dentistService');
+    const allDentists = await dentistService.getAllDentists();
+    
+    // Remover dentistas órfãos (que não têm usuário correspondente)
+    const dentistUserNames = dentistUsersFiltered.map((user: any) => user.name);
+    const orphanDentists = allDentists.filter((dentist: any) => !dentistUserNames.includes(dentist.name));
+    
+    console.log(`🗑️ Removendo ${orphanDentists.length} dentistas órfãos`);
+    
+    for (const orphan of orphanDentists) {
+      await dentistService.deleteDentist(orphan.id.toString());
+      console.log(`✅ Dentista órfão removido: ${orphan.name}`);
+    }
+    
+    res.json({ 
+      message: 'Sincronização concluída',
+      removedOrphans: orphanDentists.length,
+      orphanNames: orphanDentists.map((d: any) => d.name)
+    });
+  } catch (error: any) {
+    console.error('❌ Erro na sincronização:', error);
+    res.status(500).json({ message: 'Erro na sincronização', error: error.message });
+  }
 };

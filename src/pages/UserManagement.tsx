@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth, User, UserRole } from "@/contexts/AuthContext";
+import { useDentists } from "@/contexts/DentistContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function UserManagement() {
   const { currentUser } = useAuth();
+  const { refreshDentists } = useDentists();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -48,6 +51,7 @@ export default function UserManagement() {
     }
 
     try {
+      console.log('Enviando dados do usuário:', newUser);
       const response = await fetch('http://localhost:3000/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,6 +78,10 @@ export default function UserManagement() {
       return;
     }
 
+    // Verificar se o usuário é um dentista antes de excluir
+    const userToDelete = users.find(user => user.id === id);
+    const isDentist = userToDelete?.role === 'dentist';
+
     try {
       const response = await fetch(`http://localhost:3000/api/users/${id}`, {
         method: 'DELETE',
@@ -82,6 +90,41 @@ export default function UserManagement() {
       if (response.ok) {
         toast({ title: "Sucesso", description: "Usuário excluído com sucesso" });
         fetchUsers();
+        
+        // Se era um dentista, sincronizar tabelas e atualizar
+        if (isDentist) {
+          console.log('🔥 Usuário dentista excluído, sincronizando tabelas');
+          
+          // Chamar endpoint de sincronização
+          try {
+            const syncResponse = await fetch('http://localhost:3000/api/users/sync-dentists', {
+              method: 'POST',
+            });
+            
+            if (syncResponse.ok) {
+              const syncData = await syncResponse.json();
+              console.log('✅ Sincronização concluída:', syncData);
+            }
+          } catch (syncError) {
+            console.error('❌ Erro na sincronização:', syncError);
+          }
+          
+          // Usar localStorage para comunicar mudança
+          localStorage.setItem('dentists_updated', Date.now().toString());
+          console.log('📝 LocalStorage atualizado');
+          
+          // Disparar evento customizado
+          window.dispatchEvent(new CustomEvent('dentists_updated'));
+          console.log('📡 Evento customizado disparado');
+          
+          // Tentar usar o Context se disponível
+          try {
+            refreshDentists();
+            console.log('🔄 Context refreshDentists chamado');
+          } catch (error) {
+            console.log('❌ Context não disponível, usando eventos');
+          }
+        }
       } else {
         toast({ title: "Erro", description: "Falha ao excluir usuário", variant: "destructive" });
       }

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Mail, Phone, Award, Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useDentists } from "@/contexts/DentistContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -38,20 +40,130 @@ interface Patient {
 }
 
 export default function Dentists() {
-  const [dentists, setDentists] = useState<Dentist[]>([]);
+  const { dentists, refreshDentists, isLoading } = useDentists();
+  const [localDentists, setLocalDentists] = useState<Dentist[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const { toast } = useToast();
+  const location = useLocation();
+
+  console.log('🏥 Página Dentistas renderizada, dentistas do Context:', dentists.length);
+
+  // Forçar busca local sempre que a página for renderizada
+  useEffect(() => {
+    console.log('🔄 Forçando atualização local dos dentistas');
+    fetchDentistsLocal();
+  }, []); // Executar apenas uma vez na montagem
+
+  // Forçar atualização quando a página ganhar foco
+  useEffect(() => {
+    const handleFocus = () => {
+      if (location.pathname === '/dentists') {
+        console.log('🎯 Página ganhou foco, atualizando dentistas');
+        refreshDentists();
+        fetchDentistsLocal();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && location.pathname === '/dentists') {
+        console.log('👁️ Página ficou visível, atualizando dentistas');
+        refreshDentists();
+        fetchDentistsLocal();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [location.pathname, refreshDentists]);
+
+  // Função local para buscar dentistas como fallback
+  const fetchDentistsLocal = async () => {
+    try {
+      console.log('🔄 Buscando dentistas diretamente da API');
+      const response = await fetch('http://localhost:3000/api/dentists?' + Date.now()); // Cache bust
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📋 Dentistas recebidos da API:', data.length);
+        setLocalDentists(data);
+      } else {
+        toast({ title: "Erro", description: "Falha ao buscar dentistas", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar dentistas:', error);
+      toast({ title: "Erro", description: "Falha ao buscar dentistas", variant: "destructive" });
+    }
+  };
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedDentistForSchedule, setSelectedDentistForSchedule] = useState<Dentist | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [availableSlots, setAvailableSlots] = useState<string[]>([]); // Novo estado para slots disponíveis
 
   useEffect(() => {
-    fetchDentists();
     fetchAppointments();
     fetchPatients();
-  }, []);
+    
+    // Verificar mudanças a cada 3 segundos quando a página estiver ativa
+    const interval = setInterval(() => {
+      if (location.pathname === '/dentists' && !document.hidden) {
+        console.log('🔄 Verificação automática de dentistas');
+        refreshDentists();
+        fetchDentistsLocal();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [location.pathname, refreshDentists]);
+
+  // Recarregar dentistas quando navegar para esta página
+  useEffect(() => {
+    if (location.pathname === '/dentists') {
+      console.log('🔄 Navegou para /dentists, recarregando dados');
+      refreshDentists();
+      fetchDentistsLocal(); // Também chamar o fallback local
+    }
+  }, [location.pathname, refreshDentists]);
+
+  // Escutar eventos de atualização de dentistas
+  useEffect(() => {
+    const handleDentistsUpdate = () => {
+      console.log('🎯 Página Dentistas recebeu evento de atualização');
+      // Tentar usar o Context primeiro, depois fallback local
+      try {
+        console.log('🔄 Chamando refreshDentists do Context');
+        refreshDentists();
+      } catch (error) {
+        console.log('🔄 Fallback: chamando fetchDentistsLocal');
+        fetchDentistsLocal();
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dentists_updated') {
+        console.log('📝 Detectada mudança no localStorage');
+        handleDentistsUpdate();
+      }
+    };
+
+    console.log('👂 Página Dentistas configurando listeners de eventos');
+
+    // Escutar evento customizado
+    window.addEventListener('dentists_updated', handleDentistsUpdate);
+    
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      console.log('🧹 Página Dentistas removendo listeners');
+      window.removeEventListener('dentists_updated', handleDentistsUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [refreshDentists]);
 
   useEffect(() => {
     if (selectedDentistForSchedule && selectedDate) {
@@ -59,19 +171,7 @@ export default function Dentists() {
     }
   }, [selectedDentistForSchedule, selectedDate]);
 
-  const fetchDentists = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/api/dentists');
-      if (response.ok) {
-        const data = await response.json();
-        setDentists(data);
-      } else {
-        toast({ title: "Erro", description: "Falha ao buscar dentistas", variant: "destructive" });
-      }
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao buscar dentistas", variant: "destructive" });
-    }
-  };
+
 
   const fetchAppointments = async () => {
     try {
@@ -157,7 +257,7 @@ export default function Dentists() {
 
       <div className="p-8">
         <div className="grid gap-6 md:grid-cols-2">
-          {dentists.map((dentist) => (
+          {localDentists.map((dentist) => (
             <Card key={dentist.id} className="transition-all hover:shadow-lg animate-fade-in">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">

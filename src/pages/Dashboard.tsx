@@ -188,6 +188,8 @@ export default function Dashboard() {
       newPatient.date_of_birth = format(dateOfBirth, "yyyy-MM-dd");
     }
 
+
+
     try {
       const response = await fetch('http://localhost:3000/api/patients', {
         method: 'POST',
@@ -221,6 +223,8 @@ export default function Dashboard() {
 
       const endTime = new Date(startTime);
       endTime.setHours(startTime.getHours() + 1); // 1 hora de duração padrão
+
+
 
       const newAppointment = {
         patient_id: parseInt(appointmentData.patient_id as string),
