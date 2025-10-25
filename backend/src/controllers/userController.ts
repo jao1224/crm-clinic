@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as userService from '../services/userService';
+import { setAuditData } from '../middleware/auditMiddleware';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -73,6 +74,23 @@ export const createUser = async (req: Request, res: Response) => {
       // Importar e usar o serviço de dentistas
       const dentistService = require('../services/dentistService');
       await dentistService.createDentist(dentistData);
+    }
+    
+    // Adicionar log de auditoria
+    if (req.user) {
+      setAuditData(
+        req,
+        req.user.id,
+        req.user.name,
+        'CREATE',
+        'users',
+        newUser.id,
+        newUser.name,
+        { 
+          created_user: req.body,
+          is_dentist: req.body.role === 'dentist'
+        }
+      );
     }
     
     res.status(201).json(newUser);
@@ -163,6 +181,24 @@ export const deleteUser = async (req: Request, res: Response) => {
     // Excluir o usuário
     const deletedUser = await userService.deleteUser(req.params.id);
     if (deletedUser) {
+      // Adicionar log de auditoria
+      if (req.user) {
+        setAuditData(
+          req,
+          req.user.id,
+          req.user.name,
+          'DELETE',
+          'users',
+          parseInt(req.params.id),
+          user.name,
+          { 
+            deleted_user: user,
+            was_dentist: user.role === 'dentist',
+            dentist_data: dentistData 
+          }
+        );
+      }
+      
       res.json({ message: 'User deleted successfully' });
     } else {
       res.status(404).json({ message: 'User not found' });
@@ -195,11 +231,26 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
     }
 
     console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
+    
+    let dentistData = null;
 
-    // Se o usuário é um dentista, excluir da tabela dentists PRIMEIRO
+    // Se o usuário é um dentista, coletar dados e excluir da tabela dentists PRIMEIRO
     if (user.role === 'dentist') {
-      console.log(`🦷 Usuário é dentista, excluindo da tabela dentists primeiro`);
+      console.log(`🦷 Usuário é dentista, coletando dados e excluindo da tabela dentists primeiro`);
       const dentistService = require('../services/dentistService');
+      
+      try {
+        // Buscar dentista pelo nome exato
+        const dentists = await dentistService.getAllDentists();
+        const dentistToDelete = dentists.find((d: any) => d.name === user.name);
+        
+        if (dentistToDelete) {
+          console.log(`🎯 Dados do dentista coletados: ${dentistToDelete.name}`);
+          dentistData = dentistToDelete;
+        }
+      } catch (dentistError) {
+        console.error('❌ Erro ao coletar dados do dentista:', dentistError);
+      }
       
       try {
         // Buscar dentista pelo nome exato
@@ -227,6 +278,25 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
     
     if (deletedUser) {
       console.log(`✅ Usuário excluído com sucesso: ${user.name}`);
+      
+      // Adicionar log de auditoria
+      if (req.user) {
+        setAuditData(
+          req,
+          req.user.id,
+          req.user.name,
+          'DELETE',
+          'users',
+          parseInt(req.params.id),
+          user.name,
+          { 
+            deleted_user: user,
+            was_dentist: user.role === 'dentist',
+            dentist_data: dentistData 
+          }
+        );
+      }
+      
       res.json({ 
         message: 'User and dentist deleted successfully',
         deletedUser: user.name,

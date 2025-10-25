@@ -8,7 +8,8 @@ import {
   Settings,
   Activity,
   LogOut,
-  Shield
+  Shield,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Consultas", href: "/appointments", icon: Calendar, allowedRoles: ["admin", "dentist", "receptionist"] as UserRole[] },
   { name: "Finanças", href: "/finances", icon: DollarSign, allowedRoles: ["admin"] as UserRole[] },
   { name: "Gerenciamento de Usuários", href: "/users", icon: Shield, allowedRoles: ["admin"] as UserRole[] },
+  { name: "Histórico", href: "/history", icon: History, allowedRoles: ["admin"] as UserRole[] },
   { name: "Configurações", href: "/settings", icon: Settings, allowedRoles: ["admin"] as UserRole[] },
 ];
 

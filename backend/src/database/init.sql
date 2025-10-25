@@ -87,6 +87,27 @@ CREATE TABLE chatbot_sessions (
 -- Criar um índice no identificador do usuário para buscas rápidas
 CREATE INDEX idx_user_identifier ON chatbot_sessions (user_identifier);
 
+-- Tabela de Auditoria/Histórico
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    user_name VARCHAR(255) NOT NULL,
+    action VARCHAR(100) NOT NULL, -- CREATE, UPDATE, DELETE, etc.
+    entity_type VARCHAR(50) NOT NULL, -- patients, appointments, dentists, etc.
+    entity_id INT,
+    entity_name VARCHAR(255),
+    details JSONB, -- Detalhes da ação em formato JSON
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para performance
+CREATE INDEX idx_audit_logs_user_id ON audit_logs (user_id);
+CREATE INDEX idx_audit_logs_action ON audit_logs (action);
+CREATE INDEX idx_audit_logs_entity_type ON audit_logs (entity_type);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at DESC);
+
 -- Mock Data
 
 INSERT INTO services (nome_servico, descricao, valor_aproximado, duracao_media_min, palavras_chave) VALUES

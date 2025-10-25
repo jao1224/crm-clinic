@@ -104,7 +104,9 @@ export default function Patients() {
 
   const fetchPatients = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/patients');
+      const response = await fetch('http://localhost:3000/api/patients', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setPatients(data);
@@ -163,6 +165,7 @@ export default function Patients() {
       const response = await fetch('http://localhost:3000/api/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(pendingPatientData),
       });
 
@@ -239,6 +242,7 @@ export default function Patients() {
     try {
       const response = await fetch(`http://localhost:3000/api/patients/${patientId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -281,6 +285,7 @@ export default function Patients() {
       const response = await fetch(`http://localhost:3000/api/patients/${editingPatient?.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(pendingEditData),
       });
 

@@ -14,8 +14,8 @@ export const login = async (credentials: any) => {
   if (user && await bcrypt.compare(password, user.password)) {
     const { password, ...userWithoutPassword } = user;
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET || 'your_default_secret',
+      { id: user.id, username: user.username, name: user.name, role: user.role },
+      process.env.JWT_SECRET || 'dental-clinic-secret-key-2024',
       { expiresIn: '1h' }
     );
     return { token, user: userWithoutPassword };

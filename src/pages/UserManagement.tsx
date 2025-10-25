@@ -34,7 +34,9 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/users');
+      const response = await fetch('http://localhost:3000/api/users', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -56,6 +58,7 @@ export default function UserManagement() {
       const response = await fetch('http://localhost:3000/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newUser),
       });
 
@@ -87,6 +90,7 @@ export default function UserManagement() {
     try {
       const response = await fetch(`http://localhost:3000/api/users/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {

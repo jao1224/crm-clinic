@@ -1,11 +1,9 @@
 import { Router } from 'express';
 import * as serviceController from '../controllers/serviceController';
-import { authenticateToken } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// Todas as rotas de serviços são protegidas
-router.use(authenticateToken);
+// Todas as rotas de serviços são públicas por enquanto
 
 router.get('/', serviceController.getAllServices);
 router.get('/:id', serviceController.getServiceById);
