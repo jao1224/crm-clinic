@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, UserPlus, Phone, Mail, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { Search, UserPlus, Phone, Mail, Calendar as CalendarIcon, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +61,11 @@ export default function Patients() {
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const [isConfirmPatientDialogOpen, setIsConfirmPatientDialogOpen] = useState(false);
   const [pendingPatientData, setPendingPatientData] = useState<any>(null);
+  const [isEditPatientOpen, setIsEditPatientOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [editDateOfBirth, setEditDateOfBirth] = useState<Date | undefined>();
+  const [isConfirmEditDialogOpen, setIsConfirmEditDialogOpen] = useState(false);
+  const [pendingEditData, setPendingEditData] = useState<any>(null);
   
   const { toast } = useToast();
   
@@ -245,6 +250,54 @@ export default function Patients() {
       }
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao excluir paciente", variant: "destructive" });
+    }
+  };
+
+  const handleEditPatient = (patient: Patient) => {
+    setEditingPatient(patient);
+    if (patient.date_of_birth) {
+      setEditDateOfBirth(new Date(patient.date_of_birth));
+    } else {
+      setEditDateOfBirth(undefined);
+    }
+    setIsEditPatientOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const editedData = Object.fromEntries(formData.entries());
+
+    if (editDateOfBirth) {
+      editedData.date_of_birth = format(editDateOfBirth, "yyyy-MM-dd");
+    }
+
+    setPendingEditData(editedData);
+    setIsConfirmEditDialogOpen(true);
+  };
+
+  const confirmEditPatient = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/patients/${editingPatient?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingEditData),
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Paciente atualizado com sucesso" });
+        setIsEditPatientOpen(false);
+        setIsConfirmEditDialogOpen(false);
+        setEditingPatient(null);
+        setEditDateOfBirth(undefined);
+        setPendingEditData(null);
+        fetchPatients();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao atualizar paciente", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao atualizar paciente", variant: "destructive" });
     }
   };
 
@@ -579,6 +632,14 @@ export default function Patients() {
                     </DialogContent>
                   </Dialog>
                   
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditPatient(patient)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm">
@@ -607,6 +668,142 @@ export default function Patients() {
           ))}
         </div>
       </div>
+
+      {/* Diálogo de Edição de Paciente */}
+      <Dialog open={isEditPatientOpen} onOpenChange={setIsEditPatientOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Paciente</DialogTitle>
+            <DialogDescription>Atualize as informações do paciente {editingPatient?.name}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome Completo</Label>
+                <Input 
+                  id="edit-name" 
+                  name="name" 
+                  required 
+                  defaultValue={editingPatient?.name}
+                  placeholder="John Doe" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">E-mail</Label>
+                <Input 
+                  id="edit-email" 
+                  name="email" 
+                  type="email" 
+                  required 
+                  defaultValue={editingPatient?.email}
+                  placeholder="john@email.com" 
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefone</Label>
+                <Input 
+                  id="edit-phone" 
+                  name="phone" 
+                  required 
+                  defaultValue={editingPatient?.phone}
+                  placeholder="(555) 123-4567" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-date_of_birth">Data de Nascimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editDateOfBirth && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editDateOfBirth ? format(editDateOfBirth, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      locale={ptBR}
+                      mode="single"
+                      selected={editDateOfBirth}
+                      onSelect={setEditDateOfBirth}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={currentYear - 120}
+                      toYear={currentYear}
+                      disabled={{ after: new Date() }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-cpf">CPF</Label>
+                <Input 
+                  id="edit-cpf" 
+                  name="cpf" 
+                  required 
+                  defaultValue={editingPatient?.cpf}
+                  placeholder="123.456.789-00" 
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Endereço</Label>
+              <Input 
+                id="edit-address" 
+                name="address" 
+                defaultValue={editingPatient?.address}
+                placeholder="123 Main St, City, State" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-medical_history">Histórico Médico</Label>
+              <Textarea 
+                id="edit-medical_history" 
+                name="medical_history" 
+                defaultValue={editingPatient?.medical_history}
+                placeholder="Alergias, condições, medicamentos..." 
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditPatientOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Atualizar Paciente</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação para editar paciente */}
+      <AlertDialog open={isConfirmEditDialogOpen} onOpenChange={setIsConfirmEditDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Atualização de Paciente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a atualizar os dados do paciente:
+              <br />
+              <b>Nome:</b> {pendingEditData?.name}<br />
+              <b>E-mail:</b> {pendingEditData?.email}<br />
+              <b>Telefone:</b> {pendingEditData?.phone}<br />
+              <b>CPF:</b> {pendingEditData?.cpf}
+              <br />
+              Deseja continuar com a atualização?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEditPatient}>Atualizar Paciente</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirmação para criar paciente */}
       <AlertDialog open={isConfirmPatientDialogOpen} onOpenChange={setIsConfirmPatientDialogOpen}>
