@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ export default function UserManagement() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isConfirmAddDialogOpen, setIsConfirmAddDialogOpen] = useState(false);
 
   const [newUser, setNewUser] = useState({
     username: "",
@@ -62,6 +63,7 @@ export default function UserManagement() {
         toast({ title: "Sucesso", description: "Usuário criado com sucesso" });
         setNewUser({ username: "", password: "", name: "", role: "viewer" });
         setIsAddDialogOpen(false);
+        setIsConfirmAddDialogOpen(false);
         fetchUsers();
       } else {
         const errorData = await response.json();
@@ -206,10 +208,30 @@ export default function UserManagement() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" className="w-full">Criar Usuário</Button>
+                  <Button type="button" className="w-full" onClick={() => setIsConfirmAddDialogOpen(true)}>Criar Usuário</Button>
                 </form>
               </DialogContent>
             </Dialog>
+            <AlertDialog open={isConfirmAddDialogOpen} onOpenChange={setIsConfirmAddDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar Criação de Usuário</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Você está prestes a criar o seguinte usuário:
+                    <br />
+                    <b>Nome:</b> {newUser.name}<br />
+                    <b>Nome de Usuário:</b> {newUser.username}<br />
+                    <b>Função:</b> {newUser.role}
+                    <br />
+                    Deseja continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleAddUser}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -231,9 +253,26 @@ export default function UserManagement() {
                   <TableCell>
                     <div className="flex gap-2">
                       {user.id !== "1" && (
-                        <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário 
+                                <b>{user.name}</b> e removerá seus dados de nossos servidores.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Continuar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </TableCell>

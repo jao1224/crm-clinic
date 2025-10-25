@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, UserPlus, Phone, Mail, Calendar as CalendarIcon } from "lucide-react";
+import { Search, UserPlus, Phone, Mail, Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +59,8 @@ export default function Patients() {
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
   const [availableTimes, setAvailableTimes] = useState<AvailabilitySlot[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [isConfirmPatientDialogOpen, setIsConfirmPatientDialogOpen] = useState(false);
+  const [pendingPatientData, setPendingPatientData] = useState<any>(null);
   
   const { toast } = useToast();
   
@@ -137,7 +140,7 @@ export default function Patients() {
     patient.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleNewPatient = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNewPatient = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newPatientData = Object.fromEntries(formData.entries());
@@ -146,17 +149,24 @@ export default function Patients() {
       newPatientData.date_of_birth = format(dateOfBirth, "yyyy-MM-dd");
     }
 
+    setPendingPatientData(newPatientData);
+    setIsConfirmPatientDialogOpen(true);
+  };
+
+  const confirmCreatePatient = async () => {
     try {
       const response = await fetch('http://localhost:3000/api/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPatientData),
+        body: JSON.stringify(pendingPatientData),
       });
 
       if (response.ok) {
         toast({ title: "Sucesso", description: "Paciente adicionado com sucesso" });
         setIsNewPatientOpen(false);
+        setIsConfirmPatientDialogOpen(false);
         setDateOfBirth(undefined);
+        setPendingPatientData(null);
         fetchPatients();
       } else {
         const errorData = await response.json();
@@ -218,6 +228,24 @@ export default function Patients() {
     setSelectedDentistId(null);
     setSelectedDate(undefined);
     setAvailableTimes([]);
+  };
+
+  const handleDeletePatient = async (patientId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/patients/${patientId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Paciente excluído com sucesso" });
+        fetchPatients();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao excluir paciente", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao excluir paciente", variant: "destructive" });
+    }
   };
 
   return (
@@ -550,12 +578,58 @@ export default function Patients() {
                       </form>
                     </DialogContent>
                   </Dialog>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Isso excluirá permanentemente o paciente 
+                          <b> {patient.name}</b> e todos os seus dados do sistema.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeletePatient(patient.id)}>
+                          Excluir Paciente
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+
+      {/* Confirmação para criar paciente */}
+      <AlertDialog open={isConfirmPatientDialogOpen} onOpenChange={setIsConfirmPatientDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Registro de Paciente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a registrar um novo paciente com os seguintes dados:
+              <br />
+              <b>Nome:</b> {pendingPatientData?.name}<br />
+              <b>E-mail:</b> {pendingPatientData?.email}<br />
+              <b>Telefone:</b> {pendingPatientData?.phone}<br />
+              <b>CPF:</b> {pendingPatientData?.cpf}
+              <br />
+              Deseja continuar com o registro?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreatePatient}>Registrar Paciente</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

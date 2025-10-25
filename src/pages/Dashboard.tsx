@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,14 +70,20 @@ export default function Dashboard() {
   const [presentDentists, setPresentDentists] = useState<PresentDentist[]>([]);
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isConfirmPatientDialogOpen, setIsConfirmPatientDialogOpen] = useState(false);
+  const [isConfirmAppointmentDialogOpen, setIsConfirmAppointmentDialogOpen] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isAppointmentDatePopoverOpen, setIsAppointmentDatePopoverOpen] = useState(false);
+  const [pendingPatientData, setPendingPatientData] = useState<any>(null);
+  const [pendingAppointmentData, setPendingAppointmentData] = useState<any>(null);
   const currentYear = new Date().getFullYear();
 
   const { toast } = useToast();
   const { currentUser } = useAuth();
+
+
 
   useEffect(() => {
     fetchDashboardData();
@@ -179,7 +186,7 @@ export default function Dashboard() {
     return service ? service.nome_servico : "Serviço não encontrado";
   };
 
-  const handleNewPatient = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNewPatient = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newPatient = Object.fromEntries(formData.entries());
@@ -188,20 +195,25 @@ export default function Dashboard() {
       newPatient.date_of_birth = format(dateOfBirth, "yyyy-MM-dd");
     }
 
+    setPendingPatientData(newPatient);
+    setIsConfirmPatientDialogOpen(true);
+  };
 
-
+  const confirmCreatePatient = async () => {
     try {
       const response = await fetch('http://localhost:3000/api/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPatient),
+        body: JSON.stringify(pendingPatientData),
       });
 
       if (response.ok) {
         toast({ title: "Sucesso", description: "Paciente adicionado com sucesso" });
         setIsNewPatientModalOpen(false);
+        setIsConfirmPatientDialogOpen(false);
         setDateOfBirth(undefined);
-        fetchDashboardData(); // Refresh dashboard data
+        setPendingPatientData(null);
+        fetchDashboardData();
       } else {
         const errorData = await response.json();
         toast({ title: "Erro", description: errorData.message || "Falha ao adicionar paciente", variant: "destructive" });
@@ -211,7 +223,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleNewAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNewAppointment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const appointmentData = Object.fromEntries(formData.entries());
@@ -222,9 +234,7 @@ export default function Dashboard() {
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
       const endTime = new Date(startTime);
-      endTime.setHours(startTime.getHours() + 1); // 1 hora de duração padrão
-
-
+      endTime.setHours(startTime.getHours() + 1);
 
       const newAppointment = {
         patient_id: parseInt(appointmentData.patient_id as string),
@@ -236,25 +246,32 @@ export default function Dashboard() {
         status: 'pending'
       };
 
-      try {
-        const response = await fetch('http://localhost:3000/api/appointments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newAppointment),
-        });
+      setPendingAppointmentData(newAppointment);
+      setIsConfirmAppointmentDialogOpen(true);
+    }
+  };
 
-        if (response.ok) {
-          toast({ title: "Sucesso", description: "Consulta agendada com sucesso" });
-          setIsAppointmentModalOpen(false);
-          setAppointmentDate(undefined);
-          fetchDashboardData(); // Refresh dashboard data
-        } else {
-          const errorData = await response.json();
-          toast({ title: "Erro", description: errorData.message || "Falha ao agendar consulta", variant: "destructive" });
-        }
-      } catch (error) {
-        toast({ title: "Erro", description: "Falha ao agendar consulta", variant: "destructive" });
+  const confirmCreateAppointment = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingAppointmentData),
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Consulta agendada com sucesso" });
+        setIsAppointmentModalOpen(false);
+        setIsConfirmAppointmentDialogOpen(false);
+        setAppointmentDate(undefined);
+        setPendingAppointmentData(null);
+        fetchDashboardData();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao agendar consulta", variant: "destructive" });
       }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao agendar consulta", variant: "destructive" });
     }
   };
 
@@ -603,6 +620,50 @@ export default function Dashboard() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação para criar paciente */}
+      <AlertDialog open={isConfirmPatientDialogOpen} onOpenChange={setIsConfirmPatientDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Criação de Paciente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a criar um novo paciente com os seguintes dados:
+              <br />
+              <b>Nome:</b> {pendingPatientData?.name}<br />
+              <b>E-mail:</b> {pendingPatientData?.email}<br />
+              <b>Telefone:</b> {pendingPatientData?.phone}
+              <br />
+              Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreatePatient}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação para criar agendamento */}
+      <AlertDialog open={isConfirmAppointmentDialogOpen} onOpenChange={setIsConfirmAppointmentDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Agendamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a agendar uma consulta com os seguintes dados:
+              <br />
+              <b>Paciente:</b> {patients.find(p => p.id === pendingAppointmentData?.patient_id)?.name}<br />
+              <b>Dentista:</b> {dentists.find(d => d.id === pendingAppointmentData?.dentist_id)?.name}<br />
+              <b>Data:</b> {appointmentDate ? format(appointmentDate, "PPP", { locale: ptBR }) : ''}
+              <br />
+              Deseja confirmar este agendamento?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCreateAppointment}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
