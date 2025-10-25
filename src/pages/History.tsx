@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { History as HistoryIcon, User, Calendar, Filter, Search, Eye, Clock } from "lucide-react";
+import { History as HistoryIcon, User, Calendar, Filter, Search, Eye, Clock, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,41 @@ export default function History() {
   useEffect(() => {
     fetchAuditLogs();
   }, []);
+
+  const handleRestore = async (log: AuditLog) => {
+    if (log.action !== 'DELETE') return;
+    
+    try {
+      const response = await fetch(`http://localhost:3000/api/audit/restore/${log.id}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        toast({ 
+          title: "Sucesso", 
+          description: `Item "${log.entity_name}" foi restaurado com sucesso!`,
+          variant: "default"
+        });
+        
+        // Recarregar logs após restauração
+        fetchAuditLogs();
+      } else {
+        const error = await response.json();
+        toast({ 
+          title: "Erro", 
+          description: error.message || "Falha ao restaurar item", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: "Erro", 
+        description: "Falha ao restaurar item", 
+        variant: "destructive" 
+      });
+    }
+  };
 
   useEffect(() => {
     filterLogs();
@@ -386,16 +421,28 @@ export default function History() {
                             </div>
                           </div>
                         </div>
-                        <Dialog open={isDetailsOpen && selectedLog?.id === log.id} onOpenChange={setIsDetailsOpen}>
-                          <DialogTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          {log.action === 'DELETE' && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              onClick={() => setSelectedLog(log)}
+                              onClick={() => handleRestore(log)}
+                              className="flex items-center gap-1"
                             >
-                              <Eye className="h-4 w-4" />
+                              <RotateCcw className="h-3 w-3" />
+                              Restaurar
                             </Button>
-                          </DialogTrigger>
+                          )}
+                          <Dialog open={isDetailsOpen && selectedLog?.id === log.id} onOpenChange={setIsDetailsOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedLog(log)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Detalhes da Atividade</DialogTitle>
@@ -449,6 +496,7 @@ export default function History() {
                             )}
                           </DialogContent>
                         </Dialog>
+                        </div>
                       </div>
                     ))}
                   </div>

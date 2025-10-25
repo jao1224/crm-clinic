@@ -133,12 +133,16 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     console.log(`🗑️ Tentando excluir usuário ID: ${req.params.id}`);
     
-    // Primeiro, verificar se o usuário existe e qual é o seu role
-    const user = await userService.getUserById(req.params.id);
-    if (!user) {
+    // Primeiro, verificar se o usuário existe e buscar dados completos (incluindo password)
+    const pool = require('../config/database').default;
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
+    
+    if (userResult.rows.length === 0) {
       console.log(`❌ Usuário não encontrado: ${req.params.id}`);
       return res.status(404).json({ message: 'User not found' });
     }
+    
+    const user = userResult.rows[0];
 
     console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
 

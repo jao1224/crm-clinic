@@ -9,4 +9,7 @@ router.get('/user/:userId', auditController.getAuditLogsByUser);
 router.get('/entity/:entityType/:entityId', auditController.getAuditLogsByEntity);
 router.get('/date-range', auditController.getAuditLogsByDateRange);
 
+// Rota para restauração
+router.post('/restore/:logId', auditController.restoreItem);
+
 export default router;

@@ -54,3 +54,26 @@ export const getAuditLogsByDateRange = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Erro ao buscar logs por período', error });
   }
 };
+
+export const restoreItem = async (req: Request, res: Response) => {
+  try {
+    const logId = parseInt(req.params.logId);
+    const userId = (req as any).user?.id;
+    const userName = (req as any).user?.name;
+    
+    if (!userId || !userName) {
+      return res.status(401).json({ message: 'Usuário não autenticado' });
+    }
+    
+    const result = await auditService.restoreItem(logId, userId, userName);
+    
+    if (result.success) {
+      res.json({ message: 'Item restaurado com sucesso', data: result.data });
+    } else {
+      res.status(400).json({ message: result.message });
+    }
+  } catch (error) {
+    console.error('Erro ao restaurar item:', error);
+    res.status(500).json({ message: 'Erro ao restaurar item', error });
+  }
+};
