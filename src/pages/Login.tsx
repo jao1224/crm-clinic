@@ -83,7 +83,7 @@ export default function Login() {
 
             <div className="text-sm text-muted-foreground text-center pt-4">
               <p>Credenciais padrão:</p>
-              <p className="font-medium">Nome de usuário: admin | Senha: password</p>
+              <p className="font-medium">Nome de usuário: admin | Senha: admin</p>
             </div>
           </form>
         </CardContent>

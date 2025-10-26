@@ -78,7 +78,7 @@ const SettingsTest: React.FC = () => {
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Usuário Atual:</h2>
         <p>Nome: {currentUser.name}</p>
-        <p>Role: {currentUser.role}</p>
+        <p>Role: {currentUser.role_name}</p>
       </div>
 
       <div>

@@ -10,10 +10,10 @@ export const getAllUsers = async () => {
 export const login = async (credentials: any) => {
   const { username, password } = credentials;
   const result = await pool.query(`
-    SELECT u.*, r.id as role_id, r.name as role_name 
+    SELECT u.id, u.username, u.password, u.name, u.role_id, r.name as role_name 
     FROM users u 
     JOIN roles r ON u.role_id = r.id 
-    WHERE u.username = $1 AND u.is_deleted = false AND r.is_active = true
+    WHERE u.username = $1 AND (u.is_deleted = false OR u.is_deleted IS NULL) AND r.is_active = true
   `, [username]);
   const user = result.rows[0];
   if (user && await bcrypt.compare(password, user.password)) {

@@ -35,7 +35,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3000/api/permissions/role/${currentUser.role}`, {
+      const response = await fetch(`http://localhost:3000/api/permissions/role/${currentUser.role_name}`, {
         credentials: 'include'
       });
 
@@ -61,7 +61,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const hasPermission = (module: string, action: 'access' | 'create' | 'edit' | 'delete' | 'view_all' = 'access'): boolean => {
     // Admin sempre tem acesso
-    if (currentUser?.role === 'admin') {
+    if (currentUser?.role_name === 'admin') {
       return true;
     }
 
