@@ -101,9 +101,11 @@ export const deleteReceptionist = async (req: Request, res: Response) => {
           'receptionists',
           deletedReceptionist.id,
           deletedReceptionist.name,
-          { deleted_receptionist: deletedReceptionist },
-          existingReceptionist, // dados anteriores para restauração
-          true // pode ser restaurado
+          { 
+            deleted_receptionist: deletedReceptionist,
+            previous_data: existingReceptionist,
+            can_restore: true
+          }
         );
       }
 

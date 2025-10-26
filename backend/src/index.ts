@@ -12,6 +12,7 @@ import serviceRoutes from './routes/serviceRoutes';
 import auditRoutes from './routes/auditRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
 import receptionistRoutes from './routes/receptionistRoutes';
+import permissionRoutes from './routes/permissions';
 import { auditMiddleware } from './middleware/auditMiddleware';
 import { extractUserFromToken } from './middleware/authMiddleware';
 
@@ -34,6 +35,7 @@ app.use('/api/finances', financeRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/schedules', scheduleRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');

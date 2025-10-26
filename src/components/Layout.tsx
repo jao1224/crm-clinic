@@ -15,31 +15,34 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "../contexts/PermissionContext";
 
 const navigation = [
-  { name: "Painel", href: "/", icon: LayoutDashboard, allowedRoles: ["admin", "dentist", "receptionist", "viewer"] as UserRole[] },
-  { name: "Pacientes", href: "/patients", icon: Users, allowedRoles: ["admin", "dentist", "receptionist"] as UserRole[] },
-  { name: "Dentistas", href: "/dentists", icon: UserCog, allowedRoles: ["admin", "dentist", "receptionist"] as UserRole[] },
-  { name: "Consultas", href: "/appointments", icon: Calendar, allowedRoles: ["admin", "dentist", "receptionist"] as UserRole[] },
-  { name: "Horários", href: "/schedules", icon: Clock, allowedRoles: ["admin", "dentist"] as UserRole[] },
-  { name: "Finanças", href: "/finances", icon: DollarSign, allowedRoles: ["admin"] as UserRole[] },
-  { name: "Gerenciamento de Usuários", href: "/users", icon: Shield, allowedRoles: ["admin"] as UserRole[] },
-  { name: "Histórico", href: "/history", icon: History, allowedRoles: ["admin"] as UserRole[] },
-  { name: "Configurações", href: "/settings", icon: Settings, allowedRoles: ["admin"] as UserRole[] },
+  { name: "Painel", href: "/", icon: LayoutDashboard, module: "dashboard" },
+  { name: "Pacientes", href: "/patients", icon: Users, module: "patients" },
+  { name: "Dentistas", href: "/dentists", icon: UserCog, module: "dentists" },
+  { name: "Consultas", href: "/appointments", icon: Calendar, module: "appointments" },
+  { name: "Horários", href: "/schedules", icon: Clock, module: "schedules" },
+  { name: "Finanças", href: "/finances", icon: DollarSign, module: "finances" },
+  { name: "Gerenciamento de Usuários", href: "/users", icon: Shield, module: "users" },
+  { name: "Histórico", href: "/history", icon: History, module: "history" },
+  { name: "Configurações", href: "/settings", icon: Settings, module: "settings" },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
+  const { hasPermission } = usePermissions();
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const filteredNavigation = navigation.filter((item) =>
-    currentUser && item.allowedRoles.includes(currentUser.role)
+  // Filtrar navegação baseado nas permissões
+  const filteredNavigation = navigation.filter(item => 
+    hasPermission(item.module, 'access')
   );
 
   return (

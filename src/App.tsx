@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { DentistProvider } from "./contexts/DentistContext";
+import { PermissionProvider } from "./contexts/PermissionContext";
+import { PermissionGuard } from "./components/PermissionGuard";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -40,26 +42,82 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <DentistProvider>
-        <TooltipProvider>
+      <PermissionProvider>
+        <DentistProvider>
+          <TooltipProvider>
           <Toaster />
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-              <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
-              <Route path="/dentists" element={<ProtectedRoute><Layout><Dentists /></Layout></ProtectedRoute>} />
-              <Route path="/appointments" element={<ProtectedRoute><Layout><Appointments /></Layout></ProtectedRoute>} />
-              <Route path="/finances" element={<ProtectedRoute><Layout><Finances /></Layout></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-              <Route path="/users" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
-              <Route path="/schedules" element={<ProtectedRoute><Layout><Schedules /></Layout></ProtectedRoute>} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="dashboard">
+                    <Layout><Dashboard /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/patients" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="patients">
+                    <Layout><Patients /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/dentists" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="dentists">
+                    <Layout><Dentists /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/appointments" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="appointments">
+                    <Layout><Appointments /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/finances" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="finances">
+                    <Layout><Finances /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="settings">
+                    <Layout><Settings /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="users">
+                    <Layout><UserManagement /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/history" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="history">
+                    <Layout><History /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
+              <Route path="/schedules" element={
+                <ProtectedRoute>
+                  <PermissionGuard module="schedules">
+                    <Layout><Schedules /></Layout>
+                  </PermissionGuard>
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </DentistProvider>
+          </TooltipProvider>
+        </DentistProvider>
+      </PermissionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

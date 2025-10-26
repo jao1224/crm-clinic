@@ -21,8 +21,8 @@ declare global {
 export const auditMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   // Interceptar a resposta para capturar dados após a operação
   const originalSend = res.send;
-  
-  res.send = function(data: any) {
+
+  res.send = function (data: any) {
     // Se há dados de auditoria e a operação foi bem-sucedida
     if (req.auditData && res.statusCode >= 200 && res.statusCode < 300) {
       console.log('🔍 Criando log de auditoria:', req.auditData);
@@ -39,7 +39,7 @@ export const auditMiddleware = async (req: Request, res: Response, next: NextFun
     } else if (req.auditData) {
       console.log('⚠️ Dados de auditoria presentes mas status não é sucesso:', res.statusCode);
     }
-    
+
     return originalSend.call(this, data);
   };
 

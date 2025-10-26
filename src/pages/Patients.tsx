@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, UserPlus, Phone, Mail, Calendar as CalendarIcon, Trash2, Edit } from "lucide-react";
+import { PermissionGuard } from "../components/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -307,7 +308,8 @@ export default function Patients() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <PermissionGuard module="patients" action="access">
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-gradient-primary px-8 py-6">
         <div className="flex items-center justify-between">
@@ -316,12 +318,12 @@ export default function Patients() {
             <p className="mt-1 text-primary-foreground/80">Visualize e gerencie todos os prontuários de pacientes</p>
           </div>
           <Dialog open={isNewPatientOpen} onOpenChange={setIsNewPatientOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-card text-primary hover:bg-card/90">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Adicionar Novo Paciente
-              </Button>
-            </DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="bg-card text-primary hover:bg-card/90">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Adicionar Novo Paciente
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Registrar Novo Paciente</DialogTitle>
@@ -651,22 +653,22 @@ export default function Patients() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. Isso excluirá permanentemente o paciente 
-                          <b> {patient.name}</b> e todos os seus dados do sistema.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeletePatient(patient.id)}>
-                          Excluir Paciente
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o paciente 
+                        <b> {patient.name}</b> e todos os seus dados do sistema.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeletePatient(patient.id)}>
+                        Excluir Paciente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 </div>
               </CardContent>
             </Card>
@@ -832,6 +834,7 @@ export default function Patients() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </PermissionGuard>
   );
 }
