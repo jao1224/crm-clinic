@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as userService from '../services/userService';
 import * as dentistService from '../services/dentistService';
+import * as receptionistService from '../services/receptionistService';
 import { setAuditData } from '../middleware/auditMiddleware';
 
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -74,6 +75,22 @@ export const createUser = async (req: Request, res: Response) => {
       
       // Criar registro na tabela dentists
       await dentistService.createDentist(dentistData);
+    }
+    
+    // Se o usuário criado tem role "receptionist", criar também um registro na tabela receptionists
+    if (req.body.role === 'receptionist') {
+      const receptionistData = {
+        name: req.body.name,
+        email: `${req.body.username}@clinica.com`, // Email consistente baseado no username
+        phone: req.body.phone || '',
+        shift: req.body.shift || 'full',
+        hire_date: new Date().toISOString().split('T')[0], // Data atual
+        experience: req.body.experience || '0 anos',
+        permissions: req.body.permissions || ['basic']
+      };
+      
+      // Criar registro na tabela receptionists
+      await receptionistService.createReceptionist(receptionistData);
     }
     
     // Adicionar log de auditoria
@@ -166,20 +183,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       }
     }
 
-    // Mover dados para tabela deletedusers antes de excluir
-    try {
-      console.log(`📦 Movendo usuário para tabela deletedusers`);
-      const pool = require('../config/database').default;
-      
-      await pool.query(
-        'INSERT INTO deletedusers (original_user_id, username, name, role, dentist_data) VALUES ($1, $2, $3, $4, $5)',
-        [user.id, user.username, user.name, user.role, dentistData ? JSON.stringify(dentistData) : null]
-      );
-      
-      console.log(`✅ Usuário movido para deletedusers: ${user.name}`);
-    } catch (moveError) {
-      console.error('❌ Erro ao mover para deletedusers:', moveError);
-    }
+    // Dados coletados para auditoria - agora usando soft delete
 
     // Excluir o usuário
     const deletedUser = await userService.deleteUser(req.params.id);
@@ -319,7 +323,7 @@ export const getDeletedUsers = async (req: Request, res: Response) => {
     const pool = require('../config/database').default;
     
     const result = await pool.query(
-      'SELECT * FROM deletedusers ORDER BY deleted_at DESC'
+      'SELECT id, username, name, role, deleted_at, deleted_by FROM users WHERE is_deleted = true ORDER BY deleted_at DESC'
     );
     
     console.log(`✅ Encontrados ${result.rows.length} usuários excluídos`);

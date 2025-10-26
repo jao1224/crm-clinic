@@ -11,6 +11,7 @@ import financeRoutes from './routes/financeRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import auditRoutes from './routes/auditRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
+import receptionistRoutes from './routes/receptionistRoutes';
 import { auditMiddleware } from './middleware/auditMiddleware';
 import { extractUserFromToken } from './middleware/authMiddleware';
 
@@ -27,6 +28,7 @@ app.use(auditMiddleware);
 app.use('/api/patients', patientRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dentists', dentistRoutes);
+app.use('/api/receptionists', receptionistRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/finances', financeRoutes);
 app.use('/api/services', serviceRoutes);
