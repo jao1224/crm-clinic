@@ -14,6 +14,7 @@ import Finances from "./pages/Finances";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import History from "./pages/History";
+import Schedules from "./pages/Schedules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
+              <Route path="/schedules" element={<ProtectedRoute><Layout><Schedules /></Layout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

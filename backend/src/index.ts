@@ -10,6 +10,7 @@ import appointmentRoutes from './routes/appointmentRoutes';
 import financeRoutes from './routes/financeRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import auditRoutes from './routes/auditRoutes';
+import scheduleRoutes from './routes/scheduleRoutes';
 import { auditMiddleware } from './middleware/auditMiddleware';
 import { extractUserFromToken } from './middleware/authMiddleware';
 
@@ -30,6 +31,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/finances', financeRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');

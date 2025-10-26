@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as userService from '../services/userService';
+import * as dentistService from '../services/dentistService';
 import { setAuditData } from '../middleware/auditMiddleware';
 
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -71,8 +72,7 @@ export const createUser = async (req: Request, res: Response) => {
         specializations: req.body.specializations || ['Odontologia Geral']
       };
       
-      // Importar e usar o serviço de dentistas
-      const dentistService = require('../services/dentistService');
+      // Criar registro na tabela dentists
       await dentistService.createDentist(dentistData);
     }
     
@@ -151,7 +151,6 @@ export const deleteUser = async (req: Request, res: Response) => {
     // Se o usuário é um dentista, buscar dados do dentista antes de excluir
     if (user.role === 'dentist') {
       console.log(`🦷 Usuário é dentista, coletando dados antes da exclusão`);
-      const dentistService = require('../services/dentistService');
       
       try {
         // Buscar dentista pelo nome exato
@@ -241,7 +240,6 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
     // Se o usuário é um dentista, coletar dados e excluir da tabela dentists PRIMEIRO
     if (user.role === 'dentist') {
       console.log(`🦷 Usuário é dentista, coletando dados e excluindo da tabela dentists primeiro`);
-      const dentistService = require('../services/dentistService');
       
       try {
         // Buscar dentista pelo nome exato
@@ -341,7 +339,6 @@ export const syncDentists = async (req: Request, res: Response) => {
     const dentistUsersFiltered = dentistUsers.filter((user: any) => user.role === 'dentist');
     
     // Buscar todos os dentistas
-    const dentistService = require('../services/dentistService');
     const allDentists = await dentistService.getAllDentists();
     
     // Remover dentistas órfãos (que não têm usuário correspondente)
