@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth, User, UserRole } from "@/contexts/AuthContext";
+import { useAuth, User } from "@/contexts/AuthContext";
 import { useDentists } from "@/contexts/DentistContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ export default function UserManagement() {
     username: "",
     password: "",
     name: "",
-    role: "viewer" as UserRole,
+    role: "viewer",
   });
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function UserManagement() {
     }
   };
 
-  const getRoleBadgeColor = (role: UserRole) => {
+  const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin": return "bg-destructive text-destructive-foreground";
       case "dentist": return "bg-primary text-primary-foreground";
@@ -202,7 +202,7 @@ export default function UserManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Função</Label>
-                    <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value })}>
+                    <Select value={newUser.role} onValueChange={(value: string) => setNewUser({ ...newUser, role: value })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Administrador</SelectItem>
@@ -253,7 +253,7 @@ export default function UserManagement() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.username}</TableCell>
-                  <TableCell><Badge className={getRoleBadgeColor(user.role)}>{user.role}</Badge></TableCell>
+                  <TableCell><Badge className={getRoleBadgeColor(user.role_name)}>{user.role_name}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       {user.id !== "1" && (

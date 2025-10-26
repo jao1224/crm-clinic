@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type UserRole = "admin" | "dentist" | "receptionist" | "viewer";
+// Removido UserRole - agora usamos role_name como string
 
 export interface User {
-  id: string;
+  id: number;
   username: string;
-  role: UserRole;
+  role_id: number;
   role_name: string;
   name: string;
 }

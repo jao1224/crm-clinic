@@ -13,7 +13,7 @@ import {
   Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "../contexts/PermissionContext";
 
