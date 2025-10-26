@@ -9,7 +9,8 @@ declare global {
         id: number;
         name: string;
         username: string;
-        role: string;
+        role_id: number;
+        role_name: string;
       };
     }
   }
@@ -29,7 +30,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         id: decoded.id,
         name: decoded.name,
         username: decoded.username,
-        role: decoded.role
+        role_id: decoded.role_id,
+        role_name: decoded.role_name
       };
       next();
     } catch (jwtError) {
@@ -53,9 +55,10 @@ export const extractUserFromToken = (req: Request, res: Response, next: NextFunc
           id: decoded.id,
           name: decoded.name,
           username: decoded.username,
-          role: decoded.role
+          role_id: decoded.role_id,
+          role_name: decoded.role_name
         };
-        console.log('👤 Usuário extraído do token:', req.user.name, '(', req.user.role, ')');
+        console.log('👤 Usuário extraído do token:', req.user.name, '(', req.user.role_name, ')');
       } catch (jwtError) {
         // Token inválido, mas não bloquear a requisição
         console.log('⚠️ Token inválido ou expirado');
@@ -70,7 +73,8 @@ export const extractUserFromToken = (req: Request, res: Response, next: NextFunc
         id: 1,
         name: 'Sistema',
         username: 'system',
-        role: 'admin'
+        role_id: 1,
+        role_name: 'admin'
       };
       console.log('🤖 Usando usuário padrão do sistema');
     }

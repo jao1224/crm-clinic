@@ -6,7 +6,8 @@ interface AuthenticatedRequest extends Request {
     id: number;
     name: string;
     username: string;
-    role: string;
+    role_id: number;
+    role_name: string;
   };
 }
 
@@ -17,17 +18,19 @@ export const checkPermission = (module: string, action: 'access' | 'create' | 'e
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
 
-      const { role } = req.user;
+      const { role_name } = req.user;
 
       // Admin sempre tem acesso total
-      if (role === 'admin') {
+      if (role_name === 'admin') {
         return next();
       }
 
-      // Verificar permissão no banco
+      // Verificar permissão no banco usando role_id
       const result = await pool.query(
-        'SELECT * FROM role_permissions WHERE role = $1 AND module = $2',
-        [role, module]
+        `SELECT rp.* FROM role_permissions rp 
+         JOIN roles r ON rp.role_id = r.id 
+         WHERE r.name = $1 AND rp.module = $2`,
+        [role_name, module]
       );
 
       if (result.rows.length === 0) {
@@ -79,17 +82,19 @@ export const checkDataAccess = (module: string) => {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
 
-      const { role, id: userId } = req.user;
+      const { role_name, id: userId } = req.user;
 
       // Admin sempre tem acesso total
-      if (role === 'admin') {
+      if (role_name === 'admin') {
         return next();
       }
 
       // Verificar se tem permissão para ver todos os dados
       const result = await pool.query(
-        'SELECT can_view_all FROM role_permissions WHERE role = $1 AND module = $2',
-        [role, module]
+        `SELECT rp.can_view_all FROM role_permissions rp 
+         JOIN roles r ON rp.role_id = r.id 
+         WHERE r.name = $1 AND rp.module = $2`,
+        [role_name, module]
       );
 
       if (result.rows.length === 0 || !result.rows[0].can_view_all) {

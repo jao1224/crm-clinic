@@ -158,7 +158,7 @@ export const restoreItem = async (logId: number, userId: number, userName: strin
           );
           
           // Se o usuário é um dentista, também restaurar na tabela dentists
-          if (details.deleted_user.role === 'dentist' && details.dentist_data) {
+          if (details.deleted_user.role_name === 'dentist' && details.dentist_data) {
             const dentistData = details.dentist_data;
             
             // Verificar se já existe um registro na tabela dentists
@@ -194,7 +194,7 @@ export const restoreItem = async (logId: number, userId: number, userName: strin
           }
           
           // Se o usuário é um recepcionista, também restaurar na tabela receptionists
-          if (details.deleted_user.role === 'receptionist' && details.receptionist_data) {
+          if (details.deleted_user.role_name === 'receptionist' && details.receptionist_data) {
             const receptionistData = details.receptionist_data;
             
             // Verificar se já existe um registro na tabela receptionists

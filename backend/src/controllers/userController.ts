@@ -150,9 +150,14 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     console.log(`🗑️ Tentando excluir usuário ID: ${req.params.id}`);
     
-    // Primeiro, verificar se o usuário existe e buscar dados completos (incluindo password)
+    // Primeiro, verificar se o usuário existe e buscar dados completos
     const pool = require('../config/database').default;
-    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
+    const userResult = await pool.query(`
+      SELECT u.*, r.name as role_name 
+      FROM users u 
+      JOIN roles r ON u.role_id = r.id 
+      WHERE u.id = $1
+    `, [req.params.id]);
     
     if (userResult.rows.length === 0) {
       console.log(`❌ Usuário não encontrado: ${req.params.id}`);
@@ -161,12 +166,12 @@ export const deleteUser = async (req: Request, res: Response) => {
     
     const user = userResult.rows[0];
 
-    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
+    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role_name}`);
 
     let dentistData = null;
 
     // Se o usuário é um dentista, buscar dados do dentista antes de excluir
-    if (user.role === 'dentist') {
+    if (user.role_name === 'dentist') {
       console.log(`🦷 Usuário é dentista, coletando dados antes da exclusão`);
       
       try {
@@ -200,7 +205,7 @@ export const deleteUser = async (req: Request, res: Response) => {
           user.name,
           { 
             deleted_user: user,
-            was_dentist: user.role === 'dentist',
+            was_dentist: user.role_name === 'dentist',
             dentist_data: dentistData 
           }
         );
@@ -237,12 +242,12 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role}`);
+    console.log(`👤 Usuário encontrado: ${user.name}, Role: ${user.role_name}`);
     
     let dentistData = null;
 
     // Se o usuário é um dentista, coletar dados e excluir da tabela dentists PRIMEIRO
-    if (user.role === 'dentist') {
+    if (user.role_name === 'dentist') {
       console.log(`🦷 Usuário é dentista, coletando dados e excluindo da tabela dentists primeiro`);
       
       try {
@@ -297,7 +302,7 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
           user.name,
           { 
             deleted_user: user,
-            was_dentist: user.role === 'dentist',
+            was_dentist: user.role_name === 'dentist',
             dentist_data: dentistData 
           }
         );
@@ -306,7 +311,7 @@ export const deleteUserWithDentist = async (req: Request, res: Response) => {
       res.json({ 
         message: 'User and dentist deleted successfully',
         deletedUser: user.name,
-        wasDentist: user.role === 'dentist'
+        wasDentist: user.role_name === 'dentist'
       });
     } else {
       res.status(404).json({ message: 'User not found' });
@@ -323,7 +328,11 @@ export const getDeletedUsers = async (req: Request, res: Response) => {
     const pool = require('../config/database').default;
     
     const result = await pool.query(
-      'SELECT id, username, name, role, deleted_at, deleted_by FROM users WHERE is_deleted = true ORDER BY deleted_at DESC'
+      `SELECT u.id, u.username, u.name, r.name as role_name, u.deleted_at, u.deleted_by 
+       FROM users u 
+       LEFT JOIN roles r ON u.role_id = r.id 
+       WHERE u.is_deleted = true 
+       ORDER BY u.deleted_at DESC`
     );
     
     console.log(`✅ Encontrados ${result.rows.length} usuários excluídos`);
@@ -340,7 +349,7 @@ export const syncDentists = async (req: Request, res: Response) => {
     
     // Buscar todos os usuários dentistas
     const dentistUsers = await userService.getAllUsers();
-    const dentistUsersFiltered = dentistUsers.filter((user: any) => user.role === 'dentist');
+    const dentistUsersFiltered = dentistUsers.filter((user: any) => user.role_name === 'dentist');
     
     // Buscar todos os dentistas
     const allDentists = await dentistService.getAllDentists();

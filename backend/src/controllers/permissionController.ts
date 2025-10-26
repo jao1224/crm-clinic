@@ -6,7 +6,11 @@ export const getPermissionsByRole = async (req: Request, res: Response) => {
     const { role } = req.params;
 
     const result = await pool.query(
-      'SELECT * FROM role_permissions WHERE role = $1 ORDER BY module',
+      `SELECT rp.*, r.name as role, r.display_name as role_display_name 
+       FROM role_permissions rp 
+       JOIN roles r ON rp.role_id = r.id 
+       WHERE r.name = $1 
+       ORDER BY rp.module`,
       [role]
     );
 
@@ -39,8 +43,9 @@ export const updatePermission = async (req: Request, res: Response) => {
       `UPDATE role_permissions 
        SET can_access = $3, can_create = $4, can_edit = $5, 
            can_delete = $6, can_view_all = $7, updated_at = CURRENT_TIMESTAMP
-       WHERE role = $1 AND module = $2
-       RETURNING *`,
+       FROM roles r
+       WHERE role_permissions.role_id = r.id AND r.name = $1 AND role_permissions.module = $2
+       RETURNING role_permissions.*, r.name as role`,
       [role, module, can_access, can_create, can_edit, can_delete, can_view_all]
     );
 
@@ -78,7 +83,10 @@ export const deletePermission = async (req: Request, res: Response) => {
     const { role, module } = req.params;
 
     const result = await pool.query(
-      'DELETE FROM role_permissions WHERE role = $1 AND module = $2 RETURNING *',
+      `DELETE FROM role_permissions 
+       USING roles r
+       WHERE role_permissions.role_id = r.id AND r.name = $1 AND role_permissions.module = $2 
+       RETURNING role_permissions.*`,
       [role, module]
     );
 
