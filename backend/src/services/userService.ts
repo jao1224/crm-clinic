@@ -3,34 +3,61 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 export const getAllUsers = async () => {
-  const result = await pool.query('SELECT id, username, name, role_id, role_name FROM v_users_with_roles WHERE role_is_active = true');
-  return result.rows;
+  try {
+    // Tentar com a view nova
+    const result = await pool.query('SELECT id, username, name, role_id, role_name FROM v_users_with_roles WHERE role_is_active = true');
+    return result.rows;
+  } catch (error) {
+    // Fallback para estrutura antiga
+    const result = await pool.query('SELECT id, username, name, role as role_name FROM users');
+    return result.rows;
+  }
 };
 
 export const login = async (credentials: any) => {
   const { username, password } = credentials;
+  
+  console.log(`🔐 Tentando login para usuário: ${username}`);
+  
+  // Usar estrutura antiga (sem roles table) diretamente
   const result = await pool.query(`
-    SELECT u.id, u.username, u.password, u.name, u.role_id, r.name as role_name 
-    FROM users u 
-    JOIN roles r ON u.role_id = r.id 
-    WHERE u.username = $1 AND (u.is_deleted = false OR u.is_deleted IS NULL) AND r.is_active = true
+    SELECT id, username, password, name, role as role_name 
+    FROM users 
+    WHERE username = $1
   `, [username]);
+  
+  console.log(`📊 Usuários encontrados: ${result.rows.length}`);
+  
   const user = result.rows[0];
-  if (user && await bcrypt.compare(password, user.password)) {
-    const { password, ...userWithoutPassword } = user;
-    const token = jwt.sign(
-      { id: user.id, username: user.username, name: user.name, role_id: user.role_id, role_name: user.role_name },
-      process.env.JWT_SECRET || 'dental-clinic-secret-key-2024',
-      { expiresIn: '1h' }
-    );
-    return { token, user: userWithoutPassword };
+  if (user) {
+    console.log(`👤 Usuário encontrado: ${user.name}`);
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log(`🔑 Senha corresponde: ${passwordMatch}`);
+    
+    if (passwordMatch) {
+      const { password, ...userWithoutPassword } = user;
+      const token = jwt.sign(
+        { id: user.id, username: user.username, name: user.name, role_name: user.role_name },
+        process.env.JWT_SECRET || 'dental-clinic-secret-key-2024',
+        { expiresIn: '1h' }
+      );
+      console.log(`✅ Login bem-sucedido para: ${user.name}`);
+      return { token, user: userWithoutPassword };
+    }
   }
+  
+  console.log(`❌ Login falhou para: ${username}`);
   return null;
 };
 
 export const getUserById = async (id: string) => {
-  const result = await pool.query('SELECT id, username, name, role_id, role_name FROM v_users_with_roles WHERE id = $1', [id]);
-  return result.rows[0];
+  try {
+    const result = await pool.query('SELECT id, username, name, role_id, role_name FROM v_users_with_roles WHERE id = $1', [id]);
+    return result.rows[0];
+  } catch (error) {
+    const result = await pool.query('SELECT id, username, name, role as role_name FROM users WHERE id = $1', [id]);
+    return result.rows[0];
+  }
 };
 
 export const createUser = async (user: any) => {
