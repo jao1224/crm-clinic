@@ -44,8 +44,9 @@ export const createAppointment = async (req: Request, res: Response) => {
     }
     
     res.status(201).json(newAppointment);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating appointment', error });
+  } catch (error: any) {
+    console.error('Error creating appointment:', error);
+    res.status(400).json({ message: error.message || 'Error creating appointment' });
   }
 };
 
@@ -72,8 +73,9 @@ export const updateAppointment = async (req: Request, res: Response) => {
     } else {
       res.status(404).json({ message: 'Appointment not found' });
     }
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating appointment', error });
+  } catch (error: any) {
+    console.error('Error updating appointment:', error);
+    res.status(400).json({ message: error.message || 'Error updating appointment' });
   }
 };
 

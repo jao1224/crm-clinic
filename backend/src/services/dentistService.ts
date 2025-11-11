@@ -93,6 +93,7 @@ export const getAvailableSlots = async (dentistId: string, date: string) => {
   const bookedStartTimes = appointmentsResult.rows.map(row => new Date(row.start_time).getTime());
 
   const availableSlots: { start_time: Date, end_time: Date }[] = [];
+  const now = new Date();
 
   for (const schedule of schedules) {
     // Use UTC para criar as datas de início e fim
@@ -104,10 +105,13 @@ export const getAvailableSlots = async (dentistId: string, date: string) => {
 
     while (currentSlotTime + slotDuration <= end.getTime()) {
       const slotStartTime = currentSlotTime;
+      const slotStartDate = new Date(slotStartTime);
       
       const isBooked = bookedStartTimes.includes(slotStartTime);
+      const isPast = slotStartDate < now;
 
-      if (!isBooked) {
+      // Só adiciona slots que não estão reservados e não são no passado
+      if (!isBooked && !isPast) {
         availableSlots.push({
           start_time: new Date(slotStartTime),
           end_time: new Date(slotStartTime + slotDuration),
