@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, User, Stethoscope, Info } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, Stethoscope, Info, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { Label } from "@/components/ui/label";
@@ -225,6 +226,26 @@ export default function Appointments() {
     }
   };
 
+  const handleCancelAppointment = async (appointmentId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (response.ok) {
+        toast({ title: "Sucesso", description: "Agendamento cancelado com sucesso" });
+        fetchAppointments();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.message || "Falha ao cancelar agendamento", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao cancelar agendamento", variant: "destructive" });
+    }
+  };
+
   const filteredAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const isSameDay = selectedDate ? appointmentDate.toDateString() === selectedDate.toDateString() : true;
@@ -421,6 +442,32 @@ export default function Appointments() {
                           )}
                         </DialogContent>
                       </Dialog>
+                      
+                      {appointment.status !== 'cancelled' && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja cancelar este agendamento com 
+                                <b> {getPatientName(appointment.patient_id)}</b>?
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Não, manter agendamento</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleCancelAppointment(appointment.id)}>
+                                Sim, cancelar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                 );

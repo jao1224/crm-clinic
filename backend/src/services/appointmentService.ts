@@ -13,6 +13,14 @@ export const getAppointmentById = async (id: string) => {
 export const createAppointment = async (appointment: any) => {
   const { patient_id, dentist_id, service_id, start_time, end_time, type, notes, status } = appointment;
 
+  // Verifica se o horário é no passado
+  const appointmentDate = new Date(start_time);
+  const now = new Date();
+  
+  if (appointmentDate < now) {
+    throw new Error('Não é possível agendar consultas em horários passados.');
+  }
+
   // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista
   const conflictResult = await pool.query(
     'SELECT id FROM appointments WHERE dentist_id = $1 AND start_time = $2',
@@ -32,6 +40,14 @@ export const createAppointment = async (appointment: any) => {
 
 export const updateAppointment = async (id: string, appointment: any) => {
   const { patient_id, dentist_id, service_id, start_time, end_time, type, notes, status } = appointment;
+
+  // Verifica se o horário é no passado
+  const appointmentDate = new Date(start_time);
+  const now = new Date();
+  
+  if (appointmentDate < now) {
+    throw new Error('Não é possível reagendar consultas para horários passados.');
+  }
 
   // Verifica se já existe uma consulta no mesmo horário para o mesmo dentista, excluindo o agendamento atual
   const conflictResult = await pool.query(

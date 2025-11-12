@@ -9,6 +9,12 @@ import dentistRoutes from './routes/dentistRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import financeRoutes from './routes/financeRoutes';
 import serviceRoutes from './routes/serviceRoutes';
+import auditRoutes from './routes/auditRoutes';
+import scheduleRoutes from './routes/scheduleRoutes';
+import receptionistRoutes from './routes/receptionistRoutes';
+import permissionRoutes from './routes/permissions';
+import { auditMiddleware } from './middleware/auditMiddleware';
+import { extractUserFromToken } from './middleware/authMiddleware';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,13 +23,19 @@ app.use(cors({ origin: 'http://localhost:8081', credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(extractUserFromToken);
+app.use(auditMiddleware);
 
 app.use('/api/patients', patientRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dentists', dentistRoutes);
+app.use('/api/receptionists', receptionistRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/finances', financeRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');
